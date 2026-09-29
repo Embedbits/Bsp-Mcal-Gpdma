@@ -27,6 +27,11 @@
 #define GPDMA_PATCH_VERSION           ( 0u )
 
 
+/** Mask of transfer list memory region - channel base address register (CxLBAR)
+ *  holds upper 16 bits, all nodes of a channel shall be located in one 64 KB region */
+#define GPDMA_XFER_LIST_REGION_MASK   ( DMA_CLBAR_LBA_Msk )
+
+
 /** Global Interrupt Request (IRQ) flag identification for use in \ref DMA_GET_ACTIVE_IRQ_FLAG */
 #define DMA_GI_IRQ_FLAG                                 ( 0u )
 /** Transfer complete Interrupt Request (IRQ) flag identification for use in \ref DMA_GET_ACTIVE_IRQ_FLAG */
@@ -91,14 +96,42 @@
 typedef void (*gpdma_NvicIsrCallback)( void );
 
 
+/** Link register update flag state type (LL "IsEnabled" result) */
+typedef uint32_t gpdma_LinkUpdateState_t;
+
+/** Type of LL function reading link register update flag state */
+typedef gpdma_LinkUpdateState_t (*gpdma_LinkUpdateGetter)( const DMA_TypeDef *DMAx, uint32_t Channel );
+
+/** Link register (CxLLR) update flags */
+typedef enum
+{
+    GPDMA_XFER_LINK_UPDATE_CTR1 = 0u, /**< CTR1 update from next node */
+    GPDMA_XFER_LINK_UPDATE_CTR2,      /**< CTR2 update from next node */
+    GPDMA_XFER_LINK_UPDATE_CBR1,      /**< CBR1 update from next node */
+    GPDMA_XFER_LINK_UPDATE_CSAR,      /**< CSAR update from next node */
+    GPDMA_XFER_LINK_UPDATE_CDAR,      /**< CDAR update from next node */
+    GPDMA_XFER_LINK_UPDATE_CTR3,      /**< CTR3 update from next node (2D channels) */
+    GPDMA_XFER_LINK_UPDATE_CBR2,      /**< CBR2 update from next node (2D channels) */
+    GPDMA_XFER_LINK_UPDATE_CLLR,      /**< CLLR update from next node */
+    GPDMA_XFER_LINK_UPDATE_CNT        /**< Count of link update flags */
+}   gpdma_XferLinkUpdateId_t;
+
+/** Link register update flag description */
+typedef struct
+{
+    gpdma_XferLinkReg_t    UpdateMask; /**< Update flag bit in CxLLR */
+    gpdma_LinkUpdateGetter IsEnabled;  /**< LL function reading the flag */
+}   gpdma_XferLinkUpdate_t;
+
+
 /** Transfers runtime values. Used for ability to append new transfers. */
 typedef struct
 {
     volatile gpdma_ChannelId_t      ChannelId;         /**< GPDMA channel ID. */
     volatile gpdma_XferListLock_t   TransferLockState; /**< Transfer list lock mode (specifies if user can add another transfers or not) */
     volatile gpdma_TransfersCount_t XferCount;         /**< Count of transfer to be configured. */
-    volatile gpdma_DataAddr_t       FirstXferListAddr;  /**< Address of first Xfer list. */
-    volatile gpdma_DataAddr_t       LastXferListAddr;  /**< Address of last Xfer list. */
+    volatile gpdma_DataAddr_t       FirstXferListAddr __attribute__((aligned(4))); /**< Address of first Xfer list. */
+    volatile gpdma_DataAddr_t       LastXferListAddr __attribute__((aligned(4)));  /**< Address of last Xfer list. */
 }   gpdma_TransferRuntime_t;
 
 
@@ -156,6 +189,8 @@ static void Gpdma_Gpdma2Channel6_IsrHandler( void );
 static void Gpdma_Gpdma2Channel7_IsrHandler( void );
 #endif
 
+static gpdma_RequestState_t Gpdma_Check_XferListRegion( gpdma_DataAddr_t baseAddr, volatile gpdma_XferList_t * const xferList, gpdma_TransfersCount_t xferCount );
+
 /* ========================== EXPORTED VARIABLES ============================ */
 
 /* =========================== LOCAL VARIABLES ============================== */
@@ -186,6 +221,20 @@ static volatile gpdma_TransferRuntime_t     gpdma_Gpdma2RuntimeData[ GPDMA_CHANN
     { .ChannelId = GPDMA_CHANNEL_7 , .TransferLockState = GPDMA_TRANSFER_LIST_UNLOCKED, .XferCount = 0u, .FirstXferListAddr = 0u, .LastXferListAddr = 0u }
 };
 #endif
+
+
+/** \brief Link register update flags and their LL getters */
+static const gpdma_XferLinkUpdate_t          gpdma_XferLinkUpdateLut[ GPDMA_XFER_LINK_UPDATE_CNT ] =
+{
+    [ GPDMA_XFER_LINK_UPDATE_CTR1 ] = { .UpdateMask = LL_DMA_UPDATE_CTR1, .IsEnabled = LL_DMA_IsEnabledCTR1Update },
+    [ GPDMA_XFER_LINK_UPDATE_CTR2 ] = { .UpdateMask = LL_DMA_UPDATE_CTR2, .IsEnabled = LL_DMA_IsEnabledCTR2Update },
+    [ GPDMA_XFER_LINK_UPDATE_CBR1 ] = { .UpdateMask = LL_DMA_UPDATE_CBR1, .IsEnabled = LL_DMA_IsEnabledCBR1Update },
+    [ GPDMA_XFER_LINK_UPDATE_CSAR ] = { .UpdateMask = LL_DMA_UPDATE_CSAR, .IsEnabled = LL_DMA_IsEnabledCSARUpdate },
+    [ GPDMA_XFER_LINK_UPDATE_CDAR ] = { .UpdateMask = LL_DMA_UPDATE_CDAR, .IsEnabled = LL_DMA_IsEnabledCDARUpdate },
+    [ GPDMA_XFER_LINK_UPDATE_CTR3 ] = { .UpdateMask = LL_DMA_UPDATE_CTR3, .IsEnabled = LL_DMA_IsEnabledCTR3Update },
+    [ GPDMA_XFER_LINK_UPDATE_CBR2 ] = { .UpdateMask = LL_DMA_UPDATE_CBR2, .IsEnabled = LL_DMA_IsEnabledCBR2Update },
+    [ GPDMA_XFER_LINK_UPDATE_CLLR ] = { .UpdateMask = LL_DMA_UPDATE_CLLR, .IsEnabled = LL_DMA_IsEnabledCLLRUpdate }
+};
 
 
 static volatile gpdma_IsrCallbacks_t        gpdma_Gpdma1IrqCallbacks[ GPDMA_CHANNEL_CNT ] =
@@ -271,6 +320,14 @@ gpdma_ModuleVersion_t Gpdma_Get_ModuleVersion( void )
 }
 
 
+/**
+ * \brief Fills GPDMA channel configuration structure with default values.
+ *
+ * \param configStruct [out]: Pointer to store GPDMA channel configuration. Must not be NULL.
+ *
+ * \return State of request execution. Returns \ref GPDMA_REQUEST_OK if request was
+ *         success, otherwise returns \ref GPDMA_REQUEST_ERROR.
+ */
 gpdma_RequestState_t Gpdma_Get_DefaultConfig( gpdma_ConfigStruct_t * const configStruct )
 {
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
@@ -307,8 +364,13 @@ gpdma_RequestState_t Gpdma_Get_DefaultConfig( gpdma_ConfigStruct_t * const confi
 /**
  * \brief Initializes module Gpdma
  *
- * This function shall call every necessary sub-module initialization function 
+ * This function shall call every necessary sub-module initialization function
  * and set up all the necessary resources for the module to work.
+ *
+ * \param configStruct [in]: GPDMA channel configuration.
+ *
+ * \return State of request execution. Returns \ref GPDMA_REQUEST_OK if request was
+ *         success, otherwise returns \ref GPDMA_REQUEST_ERROR.
  */
 gpdma_RequestState_t Gpdma_Init( gpdma_ConfigStruct_t * const configStruct )
 {
@@ -355,6 +417,18 @@ gpdma_RequestState_t Gpdma_Init( gpdma_ConfigStruct_t * const configStruct )
                     }
                 }
 
+
+                /* All nodes shall be in the memory region of the first node (channel base address) */
+                if( GPDMA_REQUEST_OK == status )
+                {
+                    status = Gpdma_Check_XferListRegion( (gpdma_DataAddr_t)&configStruct->XferList[ 0u ],
+                                                         configStruct->XferList,
+                                                         configStruct->TransfersCount );
+                }
+                else
+                {
+                    /* Error during initialization process */
+                }
 
                 /* Channel must be inactive during configuration */
                 if( GPDMA_REQUEST_OK == status )
@@ -412,13 +486,11 @@ gpdma_RequestState_t Gpdma_Init( gpdma_ConfigStruct_t * const configStruct )
                     /* Configure NVIC and GPDMA module inter-connection */
                     nvic_RequestState_t nvicRetState = NVIC_REQUEST_ERROR;
 
-                    nvic_IsrCallback_t nvicIrqHandler = GPDMA_NULL_PTR;
-
                     gpdma_NvicIsrCallback isrCallback = gpdma_PeriphConf[ configStruct->PeriphId ].ChannelsConfig[ configStruct->ChannelId ].ChannelIsrHandler;
 
                     nvic_PeriphIrqList_t nvicIrqId = gpdma_PeriphConf[ configStruct->PeriphId ].ChannelsConfig[ configStruct->ChannelId ].NvicChannelIrq;
 
-                    nvicRetState = Nvic_Set_PeriphIrq_Handler( nvicIrqId, nvicIrqHandler );
+                    nvicRetState = Nvic_Set_PeriphIrq_Handler( nvicIrqId, isrCallback );
 
                     if( NVIC_REQUEST_OK != nvicRetState )
                     {
@@ -427,19 +499,7 @@ gpdma_RequestState_t Gpdma_Init( gpdma_ConfigStruct_t * const configStruct )
                     }
                     else
                     {
-                        if( isrCallback != nvicIrqHandler )
-                        {
-                            nvicRetState = Nvic_Set_PeriphIrq_Handler( nvicIrqId, isrCallback );
-
-                            if( NVIC_REQUEST_OK != nvicRetState )
-                            {
-                                status = GPDMA_REQUEST_ERROR;
-                            }
-                        }
-                        else
-                        {
-                            /* Callback is already configured */
-                        }
+                        /* Configuration was successful */
                     }
                 }
                 else
@@ -816,10 +876,32 @@ gpdma_RequestState_t Gpdma_Init( gpdma_ConfigStruct_t * const configStruct )
                 {
                     gpdma_ChannelType_t channelType = gpdma_PeriphConf[ configStruct->PeriphId ].ChannelsConfig[ configStruct->ChannelId ].ChannelTypeSupport;
 
+                    gpdma_XferLinkReg_t linkReg = 0u;
+
                     status = Gpdma_Get_XferListConfig( configStruct->TransferConfig,
                                                        configStruct->TransfersCount,
                                                        channelType,
                                                        configStruct->XferList );
+
+                    /* First transfer is loaded directly into channel registers,
+                     * channel link register continues with its successor */
+                    if( GPDMA_REQUEST_OK == status )
+                    {
+                        status = Gpdma_Get_XferList_LinkReg( &configStruct->XferList[ 0u ], channelType, &linkReg );
+                    }
+                    else
+                    {
+                        /* Transfer list generation failed */
+                    }
+
+                    if( GPDMA_REQUEST_OK == status )
+                    {
+                        status = Gpdma_Set_XferListLink( configStruct->PeriphId, configStruct->ChannelId, linkReg );
+                    }
+                    else
+                    {
+                        /* Transfer list generation failed */
+                    }
 
                     if( GPDMA_REQUEST_OK == status )
                     {
@@ -886,6 +968,11 @@ gpdma_RequestState_t Gpdma_Init( gpdma_ConfigStruct_t * const configStruct )
                     {
                         gpdma_ChannelType_t channelType = gpdma_PeriphConf[ configStruct->PeriphId ].ChannelsConfig[ configStruct->ChannelId ].ChannelTypeSupport;
 
+                        /* Appended nodes shall be in the memory region of the channel base address */
+                        status = Gpdma_Check_XferListRegion( gpdma_PeriphConf[ configStruct->PeriphId ].TransferRuntime[ configStruct->ChannelId ].FirstXferListAddr,
+                                                             configStruct->XferList,
+                                                             configStruct->TransfersCount );
+
                         if( GPDMA_REQUEST_OK == status )
                         {
                             /* Generate Xfer configuration list */
@@ -899,16 +986,86 @@ gpdma_RequestState_t Gpdma_Init( gpdma_ConfigStruct_t * const configStruct )
                             /* Error during configuration */
                         }
 
+                        volatile gpdma_XferList_t * const lastXferList = (volatile gpdma_XferList_t *)gpdma_PeriphConf[ configStruct->PeriphId ].TransferRuntime[ configStruct->ChannelId ].LastXferListAddr;
+                        volatile gpdma_XferList_t * const firstXferList = (volatile gpdma_XferList_t *)gpdma_PeriphConf[ configStruct->PeriphId ].TransferRuntime[ configStruct->ChannelId ].FirstXferListAddr;
+                        gpdma_DataAddr_t                  lastNextAddr  = 0u;
+                        gpdma_FunctionState_t             channelState  = GPDMA_FUNCTION_ACTIVE;
+                        gpdma_XferLinkReg_t               linkReg       = 0u;
+
+                        /* Successor of the existing list end (0 - list terminated, first node - cyclic list) */
                         if( GPDMA_REQUEST_OK == status )
                         {
-                            /* Chain current Xfer configuration list to the existing Xfer list */
-                            status = Gpdma_Set_XferList_NextXferAddr( &configStruct->XferList[ configStruct->TransfersCount - 1u ],
-                                                                      channelType,
-                                                                      gpdma_PeriphConf[ configStruct->PeriphId ].TransferRuntime[ configStruct->ChannelId ].FirstXferListAddr );
+                            status = Gpdma_Get_XferList_NextXferAddr( lastXferList, channelType, &lastNextAddr );
                         }
                         else
                         {
                             /* Error during configuration */
+                        }
+
+                        /* New list end inherits successor of the existing list end (self-loop is kept) */
+                        if( ( GPDMA_REQUEST_OK                   == status                                                                   ) &&
+                            ( GPDMA_XFER_LIST_EXEC_SINGLE_CYCLIC != configStruct->TransferConfig[ configStruct->TransfersCount - 1u ].XferListExecMode )    )
+                        {
+                            gpdma_DataAddr_t nextAddr = lastNextAddr;
+
+                            if( 0u != lastNextAddr )
+                            {
+                                /* Existing list is cyclic, keep the link to its first node */
+                                nextAddr = gpdma_PeriphConf[ configStruct->PeriphId ].TransferRuntime[ configStruct->ChannelId ].FirstXferListAddr;
+                            }
+                            else
+                            {
+                                /* Existing list is terminated */
+                            }
+
+                            status = Gpdma_Set_XferList_NextXferAddr( &configStruct->XferList[ configStruct->TransfersCount - 1u ],
+                                                                      channelType,
+                                                                      nextAddr );
+                        }
+                        else
+                        {
+                            /* Error during configuration or new transfer is self-looped */
+                        }
+
+                        /* Chain current Xfer configuration list to the end of the existing Xfer list */
+                        if( GPDMA_REQUEST_OK == status )
+                        {
+                            status = Gpdma_Set_XferList_NextXferAddr( lastXferList,
+                                                                      channelType,
+                                                                      (gpdma_DataAddr_t)&configStruct->XferList[ 0u ] );
+                        }
+                        else
+                        {
+                            /* Error during configuration */
+                        }
+
+                        /* Inactive channel holds the first node in registers - refresh its link */
+                        if( GPDMA_REQUEST_OK == status )
+                        {
+                            status = Gpdma_Get_ChannelState( configStruct->PeriphId, configStruct->ChannelId, &channelState );
+                        }
+                        else
+                        {
+                            /* Error during configuration */
+                        }
+
+                        if( ( GPDMA_REQUEST_OK        == status       ) &&
+                            ( GPDMA_FUNCTION_INACTIVE == channelState )    )
+                        {
+                            status = Gpdma_Get_XferList_LinkReg( firstXferList, channelType, &linkReg );
+
+                            if( GPDMA_REQUEST_OK == status )
+                            {
+                                status = Gpdma_Set_XferListLink( configStruct->PeriphId, configStruct->ChannelId, linkReg );
+                            }
+                            else
+                            {
+                                /* Error during configuration */
+                            }
+                        }
+                        else
+                        {
+                            /* Active channel reads the updated list end from memory */
                         }
                     }
                     else
@@ -954,6 +1111,9 @@ gpdma_RequestState_t Gpdma_Init( gpdma_ConfigStruct_t * const configStruct )
  *
  * This function shall call every necessary sub-module de-initialization function
  * and free all the resources allocated by the module.
+ *
+ * \param periphId  [in]: GPDMA peripheral identification, value from \ref gpdma_PeriphId_t.
+ * \param channelId [in]: GPDMA channel identification, value from \ref gpdma_ChannelId_t.
  *
  * \return Processing request state. If request executed successfully returns "OK",
  *         otherwise returns error.
@@ -1795,11 +1955,117 @@ gpdma_RequestState_t Gpdma_Get_XferListBaseAddr( gpdma_PeriphId_t periphId,
 
 
 /**
+ * \brief Configures channel link register (CxLLR) - registers updated from the
+ *        next transfer list node and its address.
+ *
+ * The channel shall be inactive. Value is typically taken from the transfer
+ * list node currently loaded into the channel registers
+ * (\ref Gpdma_Get_XferList_LinkReg). Value 0 terminates the transfer after
+ * the current block.
+ *
+ * \param periphId   [in]: The DMA bus identifier.
+ * \param channelId  [in]: The DMA channel identifier.
+ * \param linkReg    [in]: Link register value.
+ *
+ * \return Processing request state. If request executed successfully returns "OK",
+ *         otherwise returns error.
+ */
+gpdma_RequestState_t Gpdma_Set_XferListLink( gpdma_PeriphId_t periphId,
+                                             gpdma_ChannelId_t channelId,
+                                             gpdma_XferLinkReg_t linkReg )
+{
+    gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
+
+    if( ( GPDMA_PERIPH_CNT   > periphId   ) &&
+        ( GPDMA_CHANNEL_CNT  > channelId  )    )
+    {
+        const gpdma_XferLinkReg_t updateMask = linkReg & ( ~DMA_CLLR_LA_Msk );
+        const gpdma_XferLinkReg_t linkAddr   = linkReg & DMA_CLLR_LA_Msk;
+        gpdma_XferLinkReg_t       readBack   = 0u;
+
+        LL_DMA_ConfigLinkUpdate( gpdma_PeriphConf[ periphId ].DmaReg,
+                                 gpdma_PeriphConf[ periphId ].ChannelsConfig[ channelId ].ChannelReg,
+                                 updateMask,
+                                 linkAddr );
+
+        status = Gpdma_Get_XferListLink( periphId, channelId, &readBack );
+
+        if( ( GPDMA_REQUEST_OK == status   ) &&
+            ( linkReg          != readBack )    )
+        {
+            status = GPDMA_REQUEST_ERROR;
+        }
+        else
+        {
+            /* Link register configured */
+        }
+    }
+    else
+    {
+        status = GPDMA_REQUEST_ERROR;
+    }
+
+    return ( status );
+}
+
+
+/**
+ * \brief Returns channel link register (CxLLR) value.
+ *
+ * \param periphId   [in]: The DMA bus identifier.
+ * \param channelId  [in]: The DMA channel identifier.
+ * \param linkReg   [out]: Link register value.
+ *
+ * \return Processing request state. If request executed successfully returns "OK",
+ *         otherwise returns error.
+ */
+gpdma_RequestState_t Gpdma_Get_XferListLink( gpdma_PeriphId_t periphId,
+                                             gpdma_ChannelId_t channelId,
+                                             gpdma_XferLinkReg_t * const linkReg )
+{
+    gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
+
+    if( ( GPDMA_PERIPH_CNT   > periphId   ) &&
+        ( GPDMA_CHANNEL_CNT  > channelId  ) &&
+        ( GPDMA_NULL_PTR    != linkReg    )    )
+    {
+        const DMA_TypeDef * const dmaReg  = gpdma_PeriphConf[ periphId ].DmaReg;
+        const uint32_t            chReg   = gpdma_PeriphConf[ periphId ].ChannelsConfig[ channelId ].ChannelReg;
+        gpdma_XferLinkReg_t       linkVal = LL_DMA_GetLinkedListAddrOffset( dmaReg, chReg ) << DMA_CLLR_LA_Pos;
+
+        for( gpdma_XferLinkUpdateId_t updateId = (gpdma_XferLinkUpdateId_t)0u; GPDMA_XFER_LINK_UPDATE_CNT > updateId; updateId ++ )
+        {
+            const gpdma_LinkUpdateState_t updateState = gpdma_XferLinkUpdateLut[ updateId ].IsEnabled( dmaReg, chReg );
+
+            if( 0u != updateState )
+            {
+                linkVal |= gpdma_XferLinkUpdateLut[ updateId ].UpdateMask;
+            }
+            else
+            {
+                /* Register update from next node is disabled */
+            }
+        }
+
+        *linkReg = linkVal;
+
+        status = GPDMA_REQUEST_OK;
+    }
+    else
+    {
+        status = GPDMA_REQUEST_ERROR;
+    }
+
+    return ( status );
+}
+
+
+/**
  * \brief Sets the source transfer size.
  *
- * \param periphId               [in]: The DMA bus identifier.
- * \param channelId           [in]: The DMA channel identifier.
- * \param periphTransferSize   [in]: Source transfer data size.
+ * \param periphId    [in]: The DMA bus identifier.
+ * \param channelId   [in]: The DMA channel identifier.
+ * \param srcDataSize [in]: Source transfer data size.
  *
  * \return Processing request state. If request executed successfully returns "OK",
  *         otherwise returns error.
@@ -1847,9 +2113,9 @@ gpdma_RequestState_t Gpdma_Set_SourceDataSize( gpdma_PeriphId_t periphId,
 /**
  * \brief Gets the source transfer size.
  *
- * \param periphId                [in]: The DMA bus identifier.
- * \param channelId            [in]: The DMA channel identifier.
- * \param periphTransferSize   [out]: Pointer to source transfer size.
+ * \param periphId     [in]: The DMA bus identifier.
+ * \param channelId    [in]: The DMA channel identifier.
+ * \param srcDataSize [out]: Pointer to source transfer size.
  *
  * \return Processing request state. If request executed successfully returns "OK",
  *         otherwise returns error.
@@ -1894,9 +2160,9 @@ gpdma_RequestState_t Gpdma_Get_SourceDataSize( gpdma_PeriphId_t periphId,
 /**
  * \brief Sets the destination transfer size.
  *
- * \param periphId                [in]: The DMA bus identifier.
- * \param channelId            [in]: The DMA channel identifier.
- * \param memoryTransferSize    [in]: Destination transfer data size.
+ * \param periphId     [in]: The DMA bus identifier.
+ * \param channelId    [in]: The DMA channel identifier.
+ * \param destDataSize [in]: Destination transfer data size.
  *
  * \return Processing request state. If request executed successfully returns "OK",
  *         otherwise returns error.
@@ -1944,9 +2210,9 @@ gpdma_RequestState_t Gpdma_Set_DestinationDataSize( gpdma_PeriphId_t periphId,
 /**
  * \brief Gets the destination transfer size.
  *
- * \param periphId                 [in]: The DMA bus identifier.
- * \param channelId             [in]: The DMA channel identifier.
- * \param memoryTransferSize    [out]: Pointer to destination transfer size.
+ * \param periphId      [in]: The DMA bus identifier.
+ * \param channelId     [in]: The DMA channel identifier.
+ * \param destDataSize [out]: Pointer to destination transfer size.
  *
  * \return Processing request state. If request executed successfully returns "OK",
  *         otherwise returns error.
@@ -2498,9 +2764,9 @@ gpdma_RequestState_t Gpdma_Get_Direction( gpdma_PeriphId_t periphId,
 /**
  * \brief Set source address for DMA transfer
  *
- * \param periphId     [in]: The DMA bus identifier.
- * \param channelId [in]: The DMA channel identifier.
- * \param periphAddr [in]: Source (peripheral) address.
+ * \param periphId   [in]: The DMA bus identifier.
+ * \param channelId  [in]: The DMA channel identifier.
+ * \param sourceAddr [in]: Source (peripheral) address.
  *
  * \return Processing request state. If request executed successfully returns "OK",
  *         otherwise returns error.
@@ -2532,9 +2798,9 @@ gpdma_RequestState_t Gpdma_Set_SourceAddr( gpdma_PeriphId_t periphId,
 /**
  * \brief Get source address for DMA transfer
  *
- * \param periphId     [in]: The DMA bus identifier.
- * \param channelId [in]: The DMA channel identifier.
- * \param periphAddr [out]: Pointer to store source address.
+ * \param periphId    [in]: The DMA bus identifier.
+ * \param channelId   [in]: The DMA channel identifier.
+ * \param sourceAddr [out]: Pointer to store source address.
  *
  * \return Processing request state. If request executed successfully returns "OK",
  *         otherwise returns error.
@@ -2566,9 +2832,9 @@ gpdma_RequestState_t Gpdma_Get_SourceAddr( gpdma_PeriphId_t periphId,
 /**
  * \brief Set destination address for DMA transfer
  *
- * \param periphId      [in]: The DMA bus identifier.
- * \param channelId  [in]: The DMA channel identifier.
- * \param memoryAddr  [in]: Destination (memory) address.
+ * \param periphId  [in]: The DMA bus identifier.
+ * \param channelId [in]: The DMA channel identifier.
+ * \param destAddr  [in]: Destination (memory) address.
  *
  * \return Processing request state. If request executed successfully returns "OK",
  *         otherwise returns error.
@@ -2600,9 +2866,9 @@ gpdma_RequestState_t Gpdma_Set_DestinationAddr( gpdma_PeriphId_t periphId,
 /**
  * \brief Get destination address for DMA transfer
  *
- * \param periphId      [in]: The DMA bus identifier.
- * \param channelId  [in]: The DMA channel identifier.
- * \param memoryAddr [out]: Pointer to store destination address.
+ * \param periphId  [in]: The DMA bus identifier.
+ * \param channelId [in]: The DMA channel identifier.
+ * \param destAddr [out]: Pointer to store destination address.
  *
  * \return Processing request state. If request executed successfully returns "OK",
  *         otherwise returns error.
@@ -2856,25 +3122,17 @@ gpdma_RequestState_t Gpdma_Set_SourceBurstLength( gpdma_PeriphId_t periphId,
                                                   gpdma_ChannelId_t channelId,
                                                   gpdma_BurstLength_t srcBurstLen )
 {
-    gpdma_RequestState_t status   = GPDMA_REQUEST_ERROR;
-    gpdma_BurstLength_t  burstLen = 0u;
+    gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
-    if( ( GPDMA_PERIPH_CNT  > periphId  ) &&
-        ( GPDMA_CHANNEL_CNT > channelId )    )
+    if( ( GPDMA_PERIPH_CNT     > periphId    ) &&
+        ( GPDMA_CHANNEL_CNT    > channelId   ) &&
+        ( GPDMA_MAX_BURST_LEN >= srcBurstLen ) &&
+        ( GPDMA_MIN_BURST_LEN <= srcBurstLen )    )
     {
-        if( ( GPDMA_MAX_BURST_LEN >= srcBurstLen ) &&
-            ( GPDMA_MIN_BURST_LEN <= srcBurstLen )    )
-        {
-            burstLen = srcBurstLen - 1u;
-        }
-        else
-        {
-            burstLen = 0u;
-        }
-
+        /* LL function takes burst length 1 - 64 and writes ( length - 1 ) into SBL_1 */
         LL_DMA_SetSrcBurstLength( gpdma_PeriphConf[ periphId ].DmaReg,
                                   gpdma_PeriphConf[ periphId ].ChannelsConfig[ channelId ].ChannelReg,
-                                  burstLen );
+                                  srcBurstLen );
 
         status = GPDMA_REQUEST_OK;
     }
@@ -2936,10 +3194,11 @@ gpdma_RequestState_t Gpdma_Get_SourceBurstLength( gpdma_PeriphId_t periphId,
         ( GPDMA_CHANNEL_CNT > channelId   ) &&
         ( GPDMA_NULL_PTR   != srcBurstLen )    )
     {
+        /* LL function returns burst length 1 - 64 ( SBL_1 + 1 ) */
         uint32_t regVal = LL_DMA_GetSrcBurstLength( gpdma_PeriphConf[ periphId ].DmaReg,
                                                     gpdma_PeriphConf[ periphId ].ChannelsConfig[ channelId ].ChannelReg );
 
-        *srcBurstLen = regVal + 1u;
+        *srcBurstLen = (gpdma_BurstLength_t)regVal;
 
         status = GPDMA_REQUEST_OK;
     }
@@ -2995,25 +3254,17 @@ gpdma_RequestState_t Gpdma_Set_DestinationBurstLength( gpdma_PeriphId_t periphId
                                                        gpdma_ChannelId_t channelId,
                                                        gpdma_BurstLength_t destBurstLen )
 {
-    gpdma_RequestState_t status   = GPDMA_REQUEST_ERROR;
-    gpdma_BurstLength_t  burstLen = 0u;
+    gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
-    if( ( GPDMA_PERIPH_CNT  > periphId  ) &&
-        ( GPDMA_CHANNEL_CNT > channelId )    )
+    if( ( GPDMA_PERIPH_CNT     > periphId     ) &&
+        ( GPDMA_CHANNEL_CNT    > channelId    ) &&
+        ( GPDMA_MAX_BURST_LEN >= destBurstLen ) &&
+        ( GPDMA_MIN_BURST_LEN <= destBurstLen )    )
     {
-        if( ( GPDMA_MAX_BURST_LEN >= destBurstLen ) &&
-            ( GPDMA_MIN_BURST_LEN <= destBurstLen )    )
-        {
-            burstLen = destBurstLen - 1u;
-        }
-        else
-        {
-            burstLen = 0u;
-        }
-
+        /* LL function takes burst length 1 - 64 and writes ( length - 1 ) into DBL_1 */
         LL_DMA_SetDestBurstLength( gpdma_PeriphConf[ periphId ].DmaReg,
                                    gpdma_PeriphConf[ periphId ].ChannelsConfig[ channelId ].ChannelReg,
-                                   burstLen );
+                                   destBurstLen );
 
         status = GPDMA_REQUEST_OK;
     }
@@ -3075,10 +3326,11 @@ gpdma_RequestState_t Gpdma_Get_DestinationBurstLength( gpdma_PeriphId_t periphId
         ( GPDMA_CHANNEL_CNT > channelId   ) &&
         ( GPDMA_NULL_PTR   != destBurstLen )    )
     {
+        /* LL function returns burst length 1 - 64 ( DBL_1 + 1 ) */
         uint32_t regVal = LL_DMA_GetDestBurstLength( gpdma_PeriphConf[ periphId ].DmaReg,
                                                      gpdma_PeriphConf[ periphId ].ChannelsConfig[ channelId ].ChannelReg );
 
-        *destBurstLen = regVal + 1u;
+        *destBurstLen = (gpdma_BurstLength_t)regVal;
 
         status = GPDMA_REQUEST_OK;
     }
@@ -3099,7 +3351,7 @@ gpdma_RequestState_t Gpdma_Get_DestinationBurstLength( gpdma_PeriphId_t periphId
  *
  * \param periphId  [in]: The DMA bus identifier.
  * \param channelId [in]: The DMA channel identifier.
- * \param dataCount [in]: Number of data items to transfer. Max value is 0xFFFF (65535).
+ * \param blockSize [in]: Number of data items to transfer. Max value is 0xFFFF (65535).
  *
  * \return Processing request state. If request executed successfully returns "OK",
  *         otherwise returns error.
@@ -3138,7 +3390,7 @@ gpdma_RequestState_t Gpdma_Set_BlockSize( gpdma_PeriphId_t periphId,
  *
  * \param periphId   [in]: The DMA bus identifier.
  * \param channelId  [in]: The DMA channel identifier.
- * \param dataCount [out]: Pointer to number of data items to transfer.
+ * \param blockSize [out]: Pointer to number of data items to transfer.
  *
  * \return Processing request state. If request executed successfully returns "OK",
  *         otherwise returns error.
@@ -4186,6 +4438,11 @@ gpdma_RequestState_t Gpdma_Set_TriggerOverrunIrqInactive( gpdma_PeriphId_t perip
  * otherwise PORT0 shall be used for peripheral addressing. For memory to memory
  * transfer, port orientation is irrelevant. However, the source shall use PORT1
  * and destination shall use PORT0.
+ *
+ * \param addr [in]: Address to be checked.
+ *
+ * \return \ref GPDMA_FLAG_ACTIVE if the address is located in FLASH memory,
+ *         otherwise \ref GPDMA_FLAG_INACTIVE.
  */
 gpdma_FlagState_t Gpdma_Check_FlashLocation( uint32_t addr )
 {
@@ -4215,6 +4472,11 @@ gpdma_FlagState_t Gpdma_Check_FlashLocation( uint32_t addr )
  * otherwise PORT0 shall be used for peripheral addressing. For memory to memory
  * transfer, port orientation is irrelevant. However, the source shall use PORT1
  * and destination shall use PORT0.
+ *
+ * \param addr [in]: Address to be checked.
+ *
+ * \return \ref GPDMA_FLAG_ACTIVE if the address is located in RAM memory,
+ *         otherwise \ref GPDMA_FLAG_INACTIVE.
  */
 gpdma_FlagState_t Gpdma_Check_RamLocation( uint32_t addr )
 {
@@ -4241,6 +4503,53 @@ gpdma_FlagState_t Gpdma_Check_RamLocation( uint32_t addr )
 }
 
 /* =========================== LOCAL FUNCTIONS ============================== */
+
+/**
+ * \brief Checks that the whole transfer list is located in the memory region of
+ *        the channel linked-list base address.
+ *
+ * Channel base address register (CxLBAR) holds only upper 16 bits of the node
+ * address, link register (CxLLR) only lower 16 bits. Node outside the region
+ * would be silently loaded from a wrong address.
+ *
+ * \param baseAddr  [in]: Channel linked-list base address (address of the first node of the channel).
+ * \param xferList  [in]: Transfer list (array of nodes) to be checked.
+ * \param xferCount [in]: Count of nodes in the transfer list.
+ *
+ * \return Processing request state. Returns "OK" if all nodes are located in the
+ *         region of base address, otherwise returns error.
+ */
+static gpdma_RequestState_t Gpdma_Check_XferListRegion( gpdma_DataAddr_t baseAddr, volatile gpdma_XferList_t * const xferList, gpdma_TransfersCount_t xferCount )
+{
+    gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
+
+    if( ( GPDMA_NULL_PTR != xferList  ) &&
+        ( 0u              < xferCount )    )
+    {
+        /* Nodes are stored in continuous array - check first and last byte of the array */
+        const gpdma_DataAddr_t baseRegion  = baseAddr & GPDMA_XFER_LIST_REGION_MASK;
+        const gpdma_DataAddr_t firstRegion = (gpdma_DataAddr_t)&xferList[ 0u ] & GPDMA_XFER_LIST_REGION_MASK;
+        const gpdma_DataAddr_t lastByte    = (gpdma_DataAddr_t)&xferList[ xferCount - 1u ] + ( (gpdma_DataAddr_t)sizeof( gpdma_XferList_t ) - 1u );
+        const gpdma_DataAddr_t lastRegion  = lastByte & GPDMA_XFER_LIST_REGION_MASK;
+
+        if( ( baseRegion == firstRegion ) &&
+            ( baseRegion == lastRegion  )    )
+        {
+            status = GPDMA_REQUEST_OK;
+        }
+        else
+        {
+            /* Transfer list crosses or is outside of the channel memory region */
+            status = GPDMA_REQUEST_ERROR;
+        }
+    }
+    else
+    {
+        status = GPDMA_REQUEST_ERROR;
+    }
+
+    return ( status );
+}
 
 
 /* =========================== INTERRUPT HANDLERS =========================== */
@@ -4362,47 +4671,73 @@ static inline void Gpdma_GlobalIsrHandler( gpdma_PeriphId_t periphId, gpdma_Chan
     }
 }
 
+
+/**
+ * \brief GPDMA1 channel 0 interrupt service routine.
+ */
 static void Gpdma_Gpdma1Channel0_IsrHandler( void )
 {
     Gpdma_GlobalIsrHandler( GPDMA_PERIPH_1, GPDMA_CHANNEL_0 );
 }
 
+
+/**
+ * \brief GPDMA1 channel 1 interrupt service routine.
+ */
 static void Gpdma_Gpdma1Channel1_IsrHandler( void )
 {
     Gpdma_GlobalIsrHandler( GPDMA_PERIPH_1, GPDMA_CHANNEL_1 );
 }
 
 
+/**
+ * \brief GPDMA1 channel 2 interrupt service routine.
+ */
 static void Gpdma_Gpdma1Channel2_IsrHandler( void )
 {
     Gpdma_GlobalIsrHandler( GPDMA_PERIPH_1, GPDMA_CHANNEL_2 );
 }
 
 
+/**
+ * \brief GPDMA1 channel 3 interrupt service routine.
+ */
 static void Gpdma_Gpdma1Channel3_IsrHandler( void )
 {
     Gpdma_GlobalIsrHandler( GPDMA_PERIPH_1, GPDMA_CHANNEL_3 );
 }
 
 
+/**
+ * \brief GPDMA1 channel 4 interrupt service routine.
+ */
 static void Gpdma_Gpdma1Channel4_IsrHandler( void )
 {
     Gpdma_GlobalIsrHandler( GPDMA_PERIPH_1, GPDMA_CHANNEL_4 );
 }
 
 
+/**
+ * \brief GPDMA1 channel 5 interrupt service routine.
+ */
 static void Gpdma_Gpdma1Channel5_IsrHandler( void )
 {
     Gpdma_GlobalIsrHandler( GPDMA_PERIPH_1, GPDMA_CHANNEL_5 );
 }
 
 
+/**
+ * \brief GPDMA1 channel 6 interrupt service routine.
+ */
 static void Gpdma_Gpdma1Channel6_IsrHandler( void )
 {
     Gpdma_GlobalIsrHandler( GPDMA_PERIPH_1, GPDMA_CHANNEL_6 );
 }
 
 
+/**
+ * \brief GPDMA1 channel 7 interrupt service routine.
+ */
 static void Gpdma_Gpdma1Channel7_IsrHandler( void )
 {
     Gpdma_GlobalIsrHandler( GPDMA_PERIPH_1, GPDMA_CHANNEL_7 );
@@ -4410,48 +4745,74 @@ static void Gpdma_Gpdma1Channel7_IsrHandler( void )
 
 
 #if defined(GPDMA2)
+
+
+/**
+ * \brief GPDMA2 channel 0 interrupt service routine.
+ */
 static void Gpdma_Gpdma2Channel0_IsrHandler( void )
 {
     Gpdma_GlobalIsrHandler( GPDMA_PERIPH_2, GPDMA_CHANNEL_0 );
 }
 
 
+/**
+ * \brief GPDMA2 channel 1 interrupt service routine.
+ */
 static void Gpdma_Gpdma2Channel1_IsrHandler( void )
 {
     Gpdma_GlobalIsrHandler( GPDMA_PERIPH_2, GPDMA_CHANNEL_1 );
 }
 
 
+/**
+ * \brief GPDMA2 channel 2 interrupt service routine.
+ */
 static void Gpdma_Gpdma2Channel2_IsrHandler( void )
 {
     Gpdma_GlobalIsrHandler( GPDMA_PERIPH_2, GPDMA_CHANNEL_2 );
 }
 
 
+/**
+ * \brief GPDMA2 channel 3 interrupt service routine.
+ */
 static void Gpdma_Gpdma2Channel3_IsrHandler( void )
 {
     Gpdma_GlobalIsrHandler( GPDMA_PERIPH_2, GPDMA_CHANNEL_3 );
 }
 
 
+/**
+ * \brief GPDMA2 channel 4 interrupt service routine.
+ */
 static void Gpdma_Gpdma2Channel4_IsrHandler( void )
 {
     Gpdma_GlobalIsrHandler( GPDMA_PERIPH_2, GPDMA_CHANNEL_4 );
 }
 
 
+/**
+ * \brief GPDMA2 channel 5 interrupt service routine.
+ */
 static void Gpdma_Gpdma2Channel5_IsrHandler( void )
 {
     Gpdma_GlobalIsrHandler( GPDMA_PERIPH_2, GPDMA_CHANNEL_5 );
 }
 
 
+/**
+ * \brief GPDMA2 channel 6 interrupt service routine.
+ */
 static void Gpdma_Gpdma2Channel6_IsrHandler( void )
 {
     Gpdma_GlobalIsrHandler( GPDMA_PERIPH_2, GPDMA_CHANNEL_6 );
 }
 
 
+/**
+ * \brief GPDMA2 channel 7 interrupt service routine.
+ */
 static void Gpdma_Gpdma2Channel7_IsrHandler( void )
 {
     Gpdma_GlobalIsrHandler( GPDMA_PERIPH_2, GPDMA_CHANNEL_7 );

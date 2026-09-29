@@ -101,6 +101,10 @@ typedef uint32_t gpdma_DstAddr_t;
 typedef uint32_t gpdma_DataAddr_t;
 
 
+/** Linked-list link register (CxLLR) value type definition */
+typedef uint32_t gpdma_XferLinkReg_t;
+
+
 /** \brief Data count type definition */
 typedef uint16_t gpdma_ByteCnt_t;
 
