@@ -35,6 +35,10 @@
  *  (ongoing single / burst transfer is finished first) */
 #define GPDMA_SUSPEND_TIMEOUT_RAW     ( 10000u )
 
+/** Channel interrupt enable bits (CCR) - same bit positions as the event flags (CSR) */
+#define GPDMA_CHANNEL_IRQ_MASK        ( DMA_CCR_TCIE  | DMA_CCR_HTIE   | DMA_CCR_DTEIE | DMA_CCR_ULEIE | \
+                                        DMA_CCR_USEIE | DMA_CCR_SUSPIE | DMA_CCR_TOIE                     )
+
 
 /** Global Interrupt Request (IRQ) flag identification for use in \ref DMA_GET_ACTIVE_IRQ_FLAG */
 #define DMA_GI_IRQ_FLAG                                 ( 0u )
@@ -194,6 +198,8 @@ static void Gpdma_Gpdma2Channel7_IsrHandler( void );
 #endif
 
 static gpdma_RequestState_t Gpdma_Check_XferListRegion( gpdma_DataAddr_t baseAddr, volatile gpdma_XferList_t * const xferList, gpdma_TransfersCount_t xferCount );
+
+static gpdma_RequestState_t Gpdma_Set_PeriphClockInactive( gpdma_PeriphId_t periphId );
 
 /* ========================== EXPORTED VARIABLES ============================ */
 
@@ -1111,16 +1117,19 @@ gpdma_RequestState_t Gpdma_Init( gpdma_ConfigStruct_t * const configStruct )
 
 
 /**
- * \brief De-initializes module GPDMA
+ * \brief De-initializes one channel of GPDMA peripheral
  *
- * This function shall call every necessary sub-module de-initialization function
- * and free all the resources allocated by the module.
+ * Ongoing transfer of the channel is stopped (suspension of an enabled channel)
+ * and the channel is reset, its interrupts are disabled, pending flags cleared
+ * and callbacks released. Other channels of the peripheral are not affected -
+ * the peripheral clock is disabled only when no other channel of the peripheral
+ * is initialized.
  *
  * \param periphId  [in]: GPDMA peripheral identification, value from \ref gpdma_PeriphId_t.
  * \param channelId [in]: GPDMA channel identification, value from \ref gpdma_ChannelId_t.
  *
  * \return Processing request state. If request executed successfully returns "OK",
- *         otherwise returns error.
+ *         otherwise (also if the channel can not be stopped) returns error.
  */
 gpdma_RequestState_t Gpdma_Deinit( gpdma_PeriphId_t periphId, gpdma_ChannelId_t channelId )
 {
@@ -1129,46 +1138,103 @@ gpdma_RequestState_t Gpdma_Deinit( gpdma_PeriphId_t periphId, gpdma_ChannelId_t 
     if( ( GPDMA_PERIPH_CNT  > periphId  ) &&
         ( GPDMA_CHANNEL_CNT > channelId )    )
     {
-        gpdma_PeriphConf[ periphId ].TransferRuntime[ channelId ].TransferLockState = GPDMA_TRANSFER_LIST_UNLOCKED;
-        gpdma_PeriphConf[ periphId ].TransferRuntime[ channelId ].XferCount    = 0u;
-        gpdma_PeriphConf[ periphId ].TransferRuntime[ channelId ].LastXferListAddr  = 0u;
-
-        rcc_FunctionState_t rccState = RCC_FUNCTION_INACTIVE;
-
-        rcc_RequestState_t rccRetState = Rcc_Get_PeriphState( gpdma_PeriphConf[ periphId ].RccPeriphId, &rccState );
-
-        if( RCC_REQUEST_ERROR == rccRetState )
-        {
-            /* Peripheral clock activation failed. */
-            status = GPDMA_REQUEST_ERROR;
-        }
-        else
-        {
-            if( RCC_FUNCTION_ACTIVE == rccState )
-            {
-                rccRetState = Rcc_Set_PeriphInactive( gpdma_PeriphConf[ periphId ].RccPeriphId );
-
-                if( RCC_REQUEST_ERROR == rccRetState )
-                {
-                    /* Peripheral clock activation failed. */
-                    status = GPDMA_REQUEST_ERROR;
-                }
-                else
-                {
-                    /* Peripheral clock de-activation successful. */
-                    status = GPDMA_REQUEST_OK;
-                }
-            }
-            else
-            {
-                /* Peripheral clock is already inactive. */
-                status = GPDMA_REQUEST_OK;
-            }
-        }
+        status = Gpdma_Set_ChannelInactive( periphId, channelId );
     }
     else
     {
         status = GPDMA_REQUEST_ERROR;
+    }
+
+    if( GPDMA_REQUEST_OK == status )
+    {
+        const uint32_t        dmaBaseAddr = (uint32_t)gpdma_PeriphConf[ periphId ].DmaReg;
+        DMA_Channel_TypeDef * const channelReg  = (DMA_Channel_TypeDef *)( dmaBaseAddr + LL_DMA_CH_OFFSET_TAB[ gpdma_PeriphConf[ periphId ].ChannelsConfig[ channelId ].ChannelReg ] );
+
+        /* Channel interrupts disabled, pending flags cleared (CFCR has the bit positions of CSR) */
+        CLEAR_BIT( channelReg->CCR, GPDMA_CHANNEL_IRQ_MASK );
+        WRITE_REG( channelReg->CFCR, GPDMA_CHANNEL_IRQ_MASK );
+
+        gpdma_PeriphConf[ periphId ].IsrCallbacks[ channelId ].TransferCompleteCallback = GPDMA_NULL_PTR;
+        gpdma_PeriphConf[ periphId ].IsrCallbacks[ channelId ].HalfTransferCallback     = GPDMA_NULL_PTR;
+        gpdma_PeriphConf[ periphId ].IsrCallbacks[ channelId ].ErrorCallback            = GPDMA_NULL_PTR;
+
+        gpdma_PeriphConf[ periphId ].TransferRuntime[ channelId ].TransferLockState = GPDMA_TRANSFER_LIST_UNLOCKED;
+        gpdma_PeriphConf[ periphId ].TransferRuntime[ channelId ].XferCount         = 0u;
+        gpdma_PeriphConf[ periphId ].TransferRuntime[ channelId ].FirstXferListAddr = 0u;
+        gpdma_PeriphConf[ periphId ].TransferRuntime[ channelId ].LastXferListAddr  = 0u;
+
+        /* Peripheral clock is kept while other channel of the peripheral is initialized */
+        uint32_t channelsInUse = 0u;
+
+        for( uint32_t chIdx = 0u; GPDMA_CHANNEL_CNT > chIdx; chIdx++ )
+        {
+            if( 0u != gpdma_PeriphConf[ periphId ].TransferRuntime[ chIdx ].XferCount )
+            {
+                channelsInUse++;
+            }
+            else
+            {
+                /* Channel is not initialized */
+            }
+        }
+
+        if( 0u != channelsInUse )
+        {
+            /* Other channels are used - peripheral clock stays active */
+        }
+        else
+        {
+            status = Gpdma_Set_PeriphClockInactive( periphId );
+        }
+    }
+    else
+    {
+        /* Invalid arguments or channel could not be stopped */
+    }
+
+    return ( status );
+}
+
+
+/**
+ * \brief Disables clock of GPDMA peripheral (if it is active).
+ *
+ * \param periphId [in]: GPDMA peripheral identification, value from \ref gpdma_PeriphId_t.
+ *
+ * \return Processing request state. If request executed successfully returns "OK",
+ *         otherwise returns error.
+ */
+static gpdma_RequestState_t Gpdma_Set_PeriphClockInactive( gpdma_PeriphId_t periphId )
+{
+    gpdma_RequestState_t status   = GPDMA_REQUEST_ERROR;
+    rcc_FunctionState_t  rccState = RCC_FUNCTION_INACTIVE;
+
+    rcc_RequestState_t rccRetState = Rcc_Get_PeriphState( gpdma_PeriphConf[ periphId ].RccPeriphId, &rccState );
+
+    if( RCC_REQUEST_ERROR == rccRetState )
+    {
+        /* Peripheral clock state is not available */
+        status = GPDMA_REQUEST_ERROR;
+    }
+    else if( RCC_FUNCTION_ACTIVE == rccState )
+    {
+        rccRetState = Rcc_Set_PeriphInactive( gpdma_PeriphConf[ periphId ].RccPeriphId );
+
+        if( RCC_REQUEST_ERROR == rccRetState )
+        {
+            /* Peripheral clock de-activation failed */
+            status = GPDMA_REQUEST_ERROR;
+        }
+        else
+        {
+            /* Peripheral clock de-activation successful */
+            status = GPDMA_REQUEST_OK;
+        }
+    }
+    else
+    {
+        /* Peripheral clock is already inactive */
+        status = GPDMA_REQUEST_OK;
     }
 
     return ( status );
@@ -3490,32 +3556,37 @@ gpdma_RequestState_t Gpdma_Set_BlockRepeatCount( gpdma_PeriphId_t periphId,
     gpdma_RequestState_t  status       = GPDMA_REQUEST_ERROR;
     gpdma_FunctionState_t channelState = GPDMA_FUNCTION_INACTIVE;
 
-    status = Gpdma_Get_ChannelState( periphId, channelId, &channelState );
-    gpdma_ChannelType_t availableTransferStyle = gpdma_PeriphConf[periphId].ChannelsConfig[channelId].ChannelTypeSupport;
-
-    if( ( GPDMA_PERIPH_CNT         > periphId               ) &&
-        ( GPDMA_CHANNEL_CNT        > channelId              ) &&
-        ( GPDMA_MAX_REP_BLOCK_LEN >= blockRepCnt            ) &&
-        ( GPDMA_REQUEST_ERROR     != status                 ) &&
-        ( GPDMA_FUNCTION_INACTIVE == channelState           ) &&
-        ( GPDMA_CHANNEL_LINEAR_2D == availableTransferStyle )    )
+    if( ( GPDMA_PERIPH_CNT  > periphId  ) &&
+        ( GPDMA_CHANNEL_CNT > channelId )    )
     {
-        LL_DMA_SetBlkRptCount( gpdma_PeriphConf[ periphId ].DmaReg,
-                               gpdma_PeriphConf[ periphId ].ChannelsConfig[ channelId ].ChannelReg,
-                               blockRepCnt );
+        const gpdma_ChannelType_t availableTransferStyle = gpdma_PeriphConf[ periphId ].ChannelsConfig[ channelId ].ChannelTypeSupport;
 
-        status = GPDMA_REQUEST_OK;
-    }
-    else
-    {
-        if( 0u != blockRepCnt )
+        status = Gpdma_Get_ChannelState( periphId, channelId, &channelState );
+
+        if( ( GPDMA_MAX_REP_BLOCK_LEN >= blockRepCnt            ) &&
+            ( GPDMA_REQUEST_ERROR     != status                 ) &&
+            ( GPDMA_FUNCTION_INACTIVE == channelState           ) &&
+            ( GPDMA_CHANNEL_LINEAR_2D == availableTransferStyle )    )
+        {
+            LL_DMA_SetBlkRptCount( gpdma_PeriphConf[ periphId ].DmaReg,
+                                   gpdma_PeriphConf[ periphId ].ChannelsConfig[ channelId ].ChannelReg,
+                                   blockRepCnt );
+
+            status = GPDMA_REQUEST_OK;
+        }
+        else if( 0u != blockRepCnt )
         {
             status = GPDMA_REQUEST_ERROR;
         }
         else
         {
+            /* No block repetition - nothing to configure */
             status = GPDMA_REQUEST_OK;
         }
+    }
+    else
+    {
+        status = GPDMA_REQUEST_ERROR;
     }
 
     return ( status );
@@ -4612,7 +4683,12 @@ static gpdma_RequestState_t Gpdma_Check_XferListRegion( gpdma_DataAddr_t baseAdd
 static inline void Gpdma_GlobalIsrHandler( gpdma_PeriphId_t periphId, gpdma_ChannelId_t channelId )
 {
     uint32_t dma_base_addr = (uint32_t)gpdma_PeriphConf[ periphId ].DmaReg;
-    uint32_t irqReg        = READ_REG( ( (DMA_Channel_TypeDef *)(dma_base_addr + LL_DMA_CH_OFFSET_TAB[gpdma_PeriphConf[ periphId ].ChannelsConfig[ channelId ].ChannelReg] ) )->CSR );
+    const DMA_Channel_TypeDef * const channelReg = (DMA_Channel_TypeDef *)(dma_base_addr + LL_DMA_CH_OFFSET_TAB[gpdma_PeriphConf[ periphId ].ChannelsConfig[ channelId ].ChannelReg] );
+
+    /* Only flags of enabled interrupt sources are handled (CSR flags and CCR interrupt enables
+     * share bit positions) - e.g. SUSPF set by channel deactivation is not an error when the
+     * suspension interrupt is not enabled */
+    uint32_t irqReg        = READ_REG( channelReg->CSR ) & READ_REG( channelReg->CCR ) & GPDMA_CHANNEL_IRQ_MASK;
 
     /* Half transfer is handled first - both flags may be pending (short transfer, interrupt latency),
      * callbacks are called in the order of the events. */

@@ -340,6 +340,27 @@ void Ut_Gpdma_ChannelConfig_SetGet_RoundTrip( void )
 
 
 /**
+ * \brief   Gpdma_Set_BlockRepeatCount() rejects invalid identifiers.
+ *
+ * \note    Bug AB#957: the channel configuration was read before the identifier range
+ *          check (out of bounds read), repeat count 0 returned OK for invalid identifiers.
+ *
+ * \par Expected results
+ * - Invalid peripheral / channel: GPDMA_REQUEST_ERROR also for repeat count 0.
+ * - Linear channel without 2D addressing: count 0 OK (no repetition), count 1 error.
+ */
+void Ut_Gpdma_Set_BlockRepeatCount_InvalidIds_ReturnsError( void )
+{
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Set_BlockRepeatCount( GPDMA_PERIPH_CNT, GPDMA_CHANNEL_0,   1u ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Set_BlockRepeatCount( GPDMA_PERIPH_CNT, GPDMA_CHANNEL_0,   0u ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Set_BlockRepeatCount( GPDMA_PERIPH_1,   GPDMA_CHANNEL_CNT, 0u ) );
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK,    Gpdma_Set_BlockRepeatCount( GPDMA_PERIPH_1,   GPDMA_CHANNEL_0,   0u ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Set_BlockRepeatCount( GPDMA_PERIPH_1,   GPDMA_CHANNEL_0,   1u ) );
+}
+
+
+/**
  * \brief   Channel configuration setters write the right registers.
  *
  * \details Sets source address, block size, source increment and request source
@@ -755,40 +776,40 @@ void Ut_Gpdma_XferList_InvalidArgs_ReturnError( void )
 
 
 /**
- * \brief   Burst length of transfer list node - round trip (known defect).
+ * \brief   Burst length of transfer list node - round trip.
  *
  * \details Writes source burst length 8 and destination burst length 2 to a node
- *          in emulated SRAM and reads them back. Ignored unless known defects are run.
+ *          in emulated SRAM and reads them back.
+ * \note    Bug AB#730: getters masked the node register by the bit position and
+ *          did not shift - wrong burst length was returned.
  *
  * \par Expected results
- * - Read burst lengths equal written ones (fails now - getters mask by bit
- *   position instead of mask and do not shift).
+ * - Read burst lengths equal written ones.
  */
 void Ut_Gpdma_XferList_BurstLength_SetGet_RoundTrip( void )
 {
-    UT_KNOWN_DEFECT( "Gpdma_Get_XferList_SrcBurstLen / DestBurstLen mask node register with DMA_CTR1_xBL_1_Pos "
-                     "instead of _Msk and do not shift - wrong burst length is returned" );
-
     UT_GPDMA_LIST_ROUNDTRIP( GPDMA_CHANNEL_LINEAR_2D, Gpdma_Set_XferList_SrcBurstLen,  Gpdma_Get_XferList_SrcBurstLen,  gpdma_BurstLength_t, 8u );
     UT_GPDMA_LIST_ROUNDTRIP( GPDMA_CHANNEL_LINEAR_2D, Gpdma_Set_XferList_DestBurstLen, Gpdma_Get_XferList_DestBurstLen, gpdma_BurstLength_t, 2u );
 }
 
 
 /**
- * \brief   Transfer complete event mode of transfer list node - round trip (known defect).
+ * \brief   Transfer complete event mode of transfer list node - round trip.
  *
- * \details For every transfer event mode writes it to a node and reads it back.
- *          Ignored unless known defects are run.
+ * \details For every transfer event mode writes it to a node and reads it back,
+ *          checks CTR2.TCEM of the linear node layout.
+ * \note    Bug AB#731: setter and getter used inverted conditions - wrong TCEM was
+ *          written by Gpdma_Init() for every transfer.
  *
  * \par Expected results
- * - Read event mode equals written one (fails now - inverted conditions).
+ * - Read event mode equals written one, TCEM holds the LL value of the event.
+ * - Invalid event mode and NULL output: GPDMA_REQUEST_ERROR.
  */
 void Ut_Gpdma_XferList_XferCpltEvent_WritesTcemAndRoundTrips( void )
 {
     volatile gpdma_XferList_t * const node = REGMEM_SRAM_PTR( volatile gpdma_XferList_t, UT_GPDMA_LIST_OFFSET_A );
-
-    UT_KNOWN_DEFECT( "Gpdma_Set/Get_XferList_XferCpltEvent use inverted conditions (!= instead of ==) - "
-                     "wrong TCEM is written and read for every event mode" );
+    const uint32_t tcemValues[ GPDMA_TRANSFER_EVENT_CNT ] = { LL_DMA_TCEM_BLK_TRANSFER,         LL_DMA_TCEM_RPT_BLK_TRANSFER,
+                                                              LL_DMA_TCEM_EACH_LLITEM_TRANSFER, LL_DMA_TCEM_LAST_LLITEM_TRANSFER };
 
     for( uint32_t eventId = 0u; GPDMA_TRANSFER_EVENT_CNT > eventId; eventId++ )
     {
@@ -797,26 +818,43 @@ void Ut_Gpdma_XferList_XferCpltEvent_WritesTcemAndRoundTrips( void )
         TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_XferList_XferCpltEvent( node, GPDMA_CHANNEL_LINEAR_2D, (gpdma_TransferEvent_t)eventId ) );
         TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Get_XferList_XferCpltEvent( node, GPDMA_CHANNEL_LINEAR_2D, &readEvent ) );
         TEST_ASSERT_EQUAL( eventId, readEvent );
+
+        TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_XferList_XferCpltEvent( node, GPDMA_CHANNEL_LINEAR, (gpdma_TransferEvent_t)eventId ) );
+        TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Get_XferList_XferCpltEvent( node, GPDMA_CHANNEL_LINEAR, &readEvent ) );
+        TEST_ASSERT_EQUAL( eventId, readEvent );
+        TEST_ASSERT_EQUAL_HEX32( tcemValues[ eventId ], node->Register[ 1u ] & DMA_CTR2_TCEM );   /* Linear node: CTR1, CTR2, ... */
     }
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Set_XferList_XferCpltEvent( node, GPDMA_CHANNEL_LINEAR, GPDMA_TRANSFER_EVENT_CNT ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Get_XferList_XferCpltEvent( node, GPDMA_CHANNEL_LINEAR, NULL ) );
 }
 
 
 /**
- * \brief   Transfer list functions reject invalid channel type (known defect).
+ * \brief   Transfer list functions reject invalid channel type.
  *
- * \details Sets source data size of a node with channel type GPDMA_CHANNEL_OPTION_CNT.
- *          Ignored unless known defects are run.
+ * \details Sets and reads source data size and transfer complete event mode of a
+ *          node with channel type GPDMA_CHANNEL_OPTION_CNT.
+ * \note    Bug AB#732: invalid channel type was handled as linear channel.
  *
  * \par Expected results
- * - GPDMA_REQUEST_ERROR (fails now - invalid type is handled as linear).
+ * - GPDMA_REQUEST_ERROR for setters and getters, node registers not written.
  */
 void Ut_Gpdma_XferList_InvalidChannelType_ReturnsError( void )
 {
     volatile gpdma_XferList_t * const node = REGMEM_SRAM_PTR( volatile gpdma_XferList_t, UT_GPDMA_LIST_OFFSET_A );
+    gpdma_DataSize_t      dataSize = GPDMA_DATA_SIZE_8BITS;
+    gpdma_TransferEvent_t eventId  = GPDMA_TRANSFER_EVENT_BLOCK;
 
-    UT_KNOWN_DEFECT( "Gpdma_Set/Get_XferList_* do not validate channelType (GPDMA_CHANNEL_OPTION_CNT is handled as linear)" );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Set_XferList_SrcDataSize( node, GPDMA_CHANNEL_OPTION_CNT, GPDMA_DATA_SIZE_32BITS ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Get_XferList_SrcDataSize( node, GPDMA_CHANNEL_OPTION_CNT, &dataSize ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Set_XferList_XferCpltEvent( node, GPDMA_CHANNEL_OPTION_CNT, GPDMA_TRANSFER_EVENT_LAST_TRANSFER ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Get_XferList_XferCpltEvent( node, GPDMA_CHANNEL_OPTION_CNT, &eventId ) );
 
-    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Set_XferList_SrcDataSize( node, GPDMA_CHANNEL_OPTION_CNT, GPDMA_DATA_SIZE_8BITS ) );
+    for( uint32_t regId = 0u; ( sizeof( node->Register ) / sizeof( node->Register[ 0 ] ) ) > regId; regId++ )
+    {
+        TEST_ASSERT_EQUAL_HEX32( 0u, node->Register[ regId ] );
+    }
 }
 
 /* ============================ INITIALIZATION ============================== */
@@ -990,31 +1028,75 @@ void Ut_Gpdma_Isr_TransferError_CallsErrorCallback( void )
     TEST_ASSERT_BITS_HIGH( DMA_CFCR_DTEF, UT_GPDMA1_CH( UT_GPDMA_CH_LINEAR )->CFCR );
 }
 
+
+/**
+ * \brief   Channel ISR ignores flags of disabled interrupt sources.
+ *
+ * \details Initializes channel 2 with TC callback and error mask GPDMA_ERROR_TRANSFER
+ *          (SUSPIE, HTIE disabled), presets CSR SUSPF and HTF and calls captured ISR,
+ *          then presets TCF together with SUSPF.
+ * \note    Bug AB#399: SUSPF set by channel deactivation (suspension before reset) was
+ *          reported as GPDMA_ERROR_SUSPENDED by a pending TC interrupt - USART DMA
+ *          stopped the transfer without reporting an error.
+ *
+ * \par Expected results
+ * - SUSPF / HTF only: no callback, CFCR not written.
+ * - TCF and SUSPF: TC callback once, no error callback, only TCF cleared.
+ */
+void Ut_Gpdma_Isr_FlagsOfDisabledIrq_Ignored( void )
+{
+    gpdma_ConfigStruct_t config;
+
+    Ut_Gpdma_Get_Config( &config, UT_GPDMA_CH_LINEAR, UT_GPDMA_LIST_OFFSET_A );
+    Ut_Gpdma_Expect_ClockActivation( RCC_FUNCTION_INACTIVE );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Init( &config ) );
+
+    TEST_ASSERT_BITS_LOW( DMA_CCR_SUSPIE | DMA_CCR_HTIE, UT_GPDMA1_CH( UT_GPDMA_CH_LINEAR )->CCR );
+
+    UT_GPDMA1_CH( UT_GPDMA_CH_LINEAR )->CSR = DMA_CSR_SUSPF | DMA_CSR_HTF;
+
+    utGpdma_ChannelIsr();
+
+    TEST_ASSERT_EQUAL_UINT32( 0u, utGpdma_TcCnt );
+    TEST_ASSERT_EQUAL_UINT32( 0u, utGpdma_ErrCnt );
+    TEST_ASSERT_EQUAL_HEX32( 0u, UT_GPDMA1_CH( UT_GPDMA_CH_LINEAR )->CFCR );
+
+    UT_GPDMA1_CH( UT_GPDMA_CH_LINEAR )->CSR = DMA_CSR_TCF | DMA_CSR_SUSPF;
+
+    utGpdma_ChannelIsr();
+
+    TEST_ASSERT_EQUAL_UINT32( 1u, utGpdma_TcCnt );
+    TEST_ASSERT_EQUAL_UINT32( 0u, utGpdma_ErrCnt );
+    TEST_ASSERT_EQUAL_HEX32( DMA_CFCR_TCF, UT_GPDMA1_CH( UT_GPDMA_CH_LINEAR )->CFCR );
+}
+
 /* =========================== DEINITIALIZATION ============================= */
 
 /**
- * \brief   Gpdma_Deinit() keeps GPDMA clock while other channel is used (known defect).
+ * \brief   Gpdma_Deinit() keeps GPDMA clock while other channel is used.
  *
- * \details Initializes channels 2 and 3, deinitializes channel 2. Only clock state
- *          read is allowed. Ignored unless known defects are run.
+ * \details Initializes channels 2 and 3, deinitializes channel 2 and calls ISR of
+ *          channel 2 with pending TCF. Only clock state read is allowed.
+ * \note    Task AB#227: Gpdma_Deinit disabled the clock of the whole peripheral
+ *          (other channels stopped) and left the channel itself configured.
  *
  * \par Expected results
- * - GPDMA_REQUEST_OK and GPDMA1 clock is not disabled (fails now - clock of whole
- *   peripheral is disabled, channel itself is not disabled).
+ * - GPDMA_REQUEST_OK and GPDMA1 clock is not disabled.
+ * - Channel 2: interrupts disabled, channel reset, callback released (ISR calls nothing).
+ * - Channel 3: interrupts still enabled.
  */
 void Ut_Gpdma_Deinit_OtherChannelInUse_KeepsPeripheralClock( void )
 {
     gpdma_ConfigStruct_t configA;
     gpdma_ConfigStruct_t configB;
-
-    UT_KNOWN_DEFECT( "Gpdma_Deinit disables RCC clock of whole GPDMA peripheral although other channels are initialized, "
-                     "the channel itself (EN, interrupts) is not disabled" );
+    nvic_IsrCallback_t   isrChannelA = NULL;
 
     Ut_Gpdma_Get_Config( &configA, GPDMA_CHANNEL_2, UT_GPDMA_LIST_OFFSET_A );
     Ut_Gpdma_Get_Config( &configB, GPDMA_CHANNEL_3, UT_GPDMA_LIST_OFFSET_B );
 
     Ut_Gpdma_Expect_ClockActivation( RCC_FUNCTION_INACTIVE );
     TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Init( &configA ) );
+    isrChannelA = utGpdma_ChannelIsr;
     Ut_Gpdma_Expect_ClockActivation( RCC_FUNCTION_ACTIVE );
     TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Init( &configB ) );
 
@@ -1022,6 +1104,46 @@ void Ut_Gpdma_Deinit_OtherChannelInUse_KeepsPeripheralClock( void )
     Rcc_Get_PeriphState_IgnoreAndReturn( RCC_REQUEST_OK );
 
     TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Deinit( GPDMA_PERIPH_1, GPDMA_CHANNEL_2 ) );
+
+    TEST_ASSERT_BITS_LOW( DMA_CCR_TCIE | DMA_CCR_DTEIE, UT_GPDMA1_CH( GPDMA_CHANNEL_2 )->CCR );
+    TEST_ASSERT_BITS_HIGH( DMA_CCR_RESET,               UT_GPDMA1_CH( GPDMA_CHANNEL_2 )->CCR );    /* Emulated register keeps the reset request */
+    TEST_ASSERT_BITS_HIGH( DMA_CCR_TCIE | DMA_CCR_DTEIE, UT_GPDMA1_CH( GPDMA_CHANNEL_3 )->CCR );
+
+    UT_GPDMA1_CH( GPDMA_CHANNEL_2 )->CSR = DMA_CSR_TCF;
+    isrChannelA();
+    TEST_ASSERT_EQUAL_UINT32( 0u, utGpdma_TcCnt );
+}
+
+
+/**
+ * \brief   Gpdma_Deinit() of the last used channel disables GPDMA clock.
+ *
+ * \details Initializes channel 2, deinitializes it, initializes it again.
+ * \note    Task AB#227: clock is disabled only when no channel of the peripheral is used.
+ *
+ * \par Expected results
+ * - GPDMA_REQUEST_OK, GPDMA1 clock disabled (active before).
+ * - Channel can be initialized again (clock activated again).
+ */
+void Ut_Gpdma_Deinit_LastChannel_DisablesPeripheralClock( void )
+{
+    static rcc_FunctionState_t clockActive = RCC_FUNCTION_ACTIVE;
+    gpdma_ConfigStruct_t       config;
+
+    Ut_Gpdma_Get_Config( &config, GPDMA_CHANNEL_2, UT_GPDMA_LIST_OFFSET_A );
+
+    Ut_Gpdma_Expect_ClockActivation( RCC_FUNCTION_INACTIVE );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Init( &config ) );
+
+    Rcc_Get_PeriphState_ExpectAndReturn( RCC_PERIPH_GPDMA1, NULL, RCC_REQUEST_OK );
+    Rcc_Get_PeriphState_IgnoreArg_funcState();
+    Rcc_Get_PeriphState_ReturnThruPtr_funcState( &clockActive );
+    Rcc_Set_PeriphInactive_ExpectAndReturn( RCC_PERIPH_GPDMA1, RCC_REQUEST_OK );
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Deinit( GPDMA_PERIPH_1, GPDMA_CHANNEL_2 ) );
+
+    Ut_Gpdma_Expect_ClockActivation( RCC_FUNCTION_INACTIVE );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Init( &config ) );
 }
 
 

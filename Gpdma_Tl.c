@@ -387,7 +387,8 @@ gpdma_RequestState_t Gpdma_Set_XferList_SrcPort( volatile gpdma_XferList_t * con
 {
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
-    if( GPDMA_NULL_PTR != transferList )
+    if( ( GPDMA_NULL_PTR           != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  )    )
     {
         uint32_t regVal = 0u;
 
@@ -446,6 +447,7 @@ gpdma_RequestState_t Gpdma_Get_XferList_SrcPort( volatile gpdma_XferList_t * con
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_NULL_PTR != sourcePort   )    )
     {
         uint32_t regVal = 0u;
@@ -497,7 +499,8 @@ gpdma_RequestState_t Gpdma_Set_XferList_DestPort( volatile gpdma_XferList_t * co
 {
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
-    if( GPDMA_NULL_PTR != transferList )
+    if( ( GPDMA_NULL_PTR           != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  )    )
     {
         uint32_t regVal = 0u;
 
@@ -556,6 +559,7 @@ gpdma_RequestState_t Gpdma_Get_XferList_DestPort( volatile gpdma_XferList_t * co
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_NULL_PTR != destPort     )    )
     {
         uint32_t regVal = 0u;
@@ -604,6 +608,7 @@ gpdma_RequestState_t Gpdma_Set_XferList_SrcDataSize( volatile gpdma_XferList_t *
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR     != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_DATA_SIZE_CNT > srcDataSize  )    )
     {
         uint32_t regVal = 0u;
@@ -656,6 +661,7 @@ gpdma_RequestState_t Gpdma_Get_XferList_SrcDataSize( volatile gpdma_XferList_t *
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_NULL_PTR != srcDataSize  )    )
     {
         uint32_t regVal = 0u;
@@ -708,6 +714,7 @@ gpdma_RequestState_t Gpdma_Set_XferList_DestDataSize( volatile gpdma_XferList_t 
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR     != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_DATA_SIZE_CNT > destDataSize )    )
     {
         uint32_t regVal = 0u;
@@ -760,6 +767,7 @@ gpdma_RequestState_t Gpdma_Get_XferList_DestDataSize( volatile gpdma_XferList_t 
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_NULL_PTR != destDataSize )    )
     {
         uint32_t regVal = 0u;
@@ -812,6 +820,7 @@ gpdma_RequestState_t Gpdma_Set_XferList_SrcDataOp( volatile gpdma_XferList_t * c
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR       != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_SRC_DATA_OP_CNT > srcDataOp    )    )
     {
         uint32_t regVal = 0u;
@@ -860,6 +869,7 @@ gpdma_RequestState_t Gpdma_Get_XferList_SrcDataOp( volatile gpdma_XferList_t * c
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_NULL_PTR != srcDataOp    )    )
     {
         uint32_t regVal = 0u;
@@ -908,6 +918,7 @@ gpdma_RequestState_t Gpdma_Set_XferList_DestDataOp( volatile gpdma_XferList_t * 
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR        != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_DEST_DATA_OP_CNT > destDataOp   )    )
     {
         uint32_t regVal = 0u;
@@ -964,6 +975,7 @@ gpdma_RequestState_t Gpdma_Get_XferList_DestDataOp( volatile gpdma_XferList_t * 
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_NULL_PTR != destDataOp   )    )
     {
         uint32_t dbxRegVal = 0u;
@@ -1026,6 +1038,7 @@ gpdma_RequestState_t Gpdma_Set_XferList_SrcBurstLen( volatile gpdma_XferList_t *
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR      != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_MAX_BURST_LEN >= srcBurstLen  ) &&
         ( GPDMA_MIN_BURST_LEN <= srcBurstLen  )    )
     {
@@ -1064,17 +1077,18 @@ gpdma_RequestState_t Gpdma_Get_XferList_SrcBurstLen( volatile gpdma_XferList_t *
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_NULL_PTR != srcBurstLen  )    )
     {
         uint32_t regVal = 0u;
 
         if( GPDMA_CHANNEL_LINEAR_2D == channelType )
         {
-            regVal = transferList->Register[ GPDMA_TRANSFER_LIST_2D_MODE_REG_TR1 ] & DMA_CTR1_SBL_1_Pos;
+            regVal = ( transferList->Register[ GPDMA_TRANSFER_LIST_2D_MODE_REG_TR1 ] & DMA_CTR1_SBL_1_Msk ) >> DMA_CTR1_SBL_1_Pos;
         }
         else
         {
-            regVal = transferList->Register[ GPDMA_TRANSFER_LIST_LINEAR_MODE_REG_TR1 ] & DMA_CTR1_SBL_1_Pos;
+            regVal = ( transferList->Register[ GPDMA_TRANSFER_LIST_LINEAR_MODE_REG_TR1 ] & DMA_CTR1_SBL_1_Msk ) >> DMA_CTR1_SBL_1_Pos;
         }
 
         *srcBurstLen = regVal + 1u;
@@ -1105,6 +1119,7 @@ gpdma_RequestState_t Gpdma_Set_XferList_DestBurstLen( volatile gpdma_XferList_t 
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR      != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_MAX_BURST_LEN >= destBurstLen ) &&
         ( GPDMA_MIN_BURST_LEN <= destBurstLen )    )
     {
@@ -1143,17 +1158,18 @@ gpdma_RequestState_t Gpdma_Get_XferList_DestBurstLen( volatile gpdma_XferList_t 
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_NULL_PTR != destBurstLen )    )
     {
         uint32_t regVal = 0u;
 
         if( GPDMA_CHANNEL_LINEAR_2D == channelType )
         {
-            regVal = transferList->Register[ GPDMA_TRANSFER_LIST_2D_MODE_REG_TR1 ] & DMA_CTR1_DBL_1_Pos;
+            regVal = ( transferList->Register[ GPDMA_TRANSFER_LIST_2D_MODE_REG_TR1 ] & DMA_CTR1_DBL_1_Msk ) >> DMA_CTR1_DBL_1_Pos;
         }
         else
         {
-            regVal = transferList->Register[ GPDMA_TRANSFER_LIST_LINEAR_MODE_REG_TR1 ] & DMA_CTR1_DBL_1_Pos;
+            regVal = ( transferList->Register[ GPDMA_TRANSFER_LIST_LINEAR_MODE_REG_TR1 ] & DMA_CTR1_DBL_1_Msk ) >> DMA_CTR1_DBL_1_Pos;
         }
 
         *destBurstLen = regVal + 1u;
@@ -1184,6 +1200,7 @@ gpdma_RequestState_t Gpdma_Set_XferList_SrcAddrMode( volatile gpdma_XferList_t *
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_ADDR_CNT  > srcAddrMode  )    )
     {
         uint32_t regVal = 0u;
@@ -1232,6 +1249,7 @@ gpdma_RequestState_t Gpdma_Get_XferList_SrcAddrMode( volatile gpdma_XferList_t *
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_NULL_PTR != srcAddrMode  )    )
     {
         uint32_t regVal = 0u;
@@ -1279,6 +1297,7 @@ gpdma_RequestState_t Gpdma_Set_XferList_DestAddrMode( volatile gpdma_XferList_t 
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_ADDR_CNT  > destAddrMode )    )
     {
         uint32_t regVal = 0u;
@@ -1327,6 +1346,7 @@ gpdma_RequestState_t Gpdma_Get_XferList_DestAddrMode( volatile gpdma_XferList_t 
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_NULL_PTR != destAddrMode )    )
     {
         uint32_t regVal = 0u;
@@ -1376,19 +1396,21 @@ gpdma_RequestState_t Gpdma_Set_XferList_XferCpltEvent( volatile gpdma_XferList_t
 {
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
-    if( GPDMA_NULL_PTR != transferList )
+    if( ( GPDMA_NULL_PTR           != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
+        ( GPDMA_TRANSFER_EVENT_CNT >  eventId      )    )
     {
         uint32_t regVal = 0u;
 
-        if( GPDMA_TRANSFER_EVENT_BLOCK != eventId )
+        if( GPDMA_TRANSFER_EVENT_BLOCK == eventId )
         {
             regVal = LL_DMA_TCEM_BLK_TRANSFER;
         }
-        else if( GPDMA_TRANSFER_EVENT_2D_BLOCK != eventId )
+        else if( GPDMA_TRANSFER_EVENT_2D_BLOCK == eventId )
         {
             regVal = LL_DMA_TCEM_RPT_BLK_TRANSFER;
         }
-        else if( GPDMA_TRANSFER_EVENT_TRANSFER != eventId )
+        else if( GPDMA_TRANSFER_EVENT_TRANSFER == eventId )
         {
             regVal = LL_DMA_TCEM_EACH_LLITEM_TRANSFER;
         }
@@ -1431,7 +1453,9 @@ gpdma_RequestState_t Gpdma_Get_XferList_XferCpltEvent( volatile gpdma_XferList_t
 {
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
-    if( GPDMA_NULL_PTR != transferList )
+    if( ( GPDMA_NULL_PTR           != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
+        ( GPDMA_NULL_PTR           != eventId      )    )
     {
         uint32_t regVal = 0u;
 
@@ -1444,15 +1468,15 @@ gpdma_RequestState_t Gpdma_Get_XferList_XferCpltEvent( volatile gpdma_XferList_t
             regVal = transferList->Register[ GPDMA_TRANSFER_LIST_LINEAR_MODE_REG_TR2 ] & DMA_CTR2_TCEM_Msk;
         }
 
-        if( LL_DMA_TCEM_BLK_TRANSFER != regVal )
+        if( LL_DMA_TCEM_BLK_TRANSFER == regVal )
         {
             *eventId = GPDMA_TRANSFER_EVENT_BLOCK;
         }
-        else if( LL_DMA_TCEM_RPT_BLK_TRANSFER != regVal )
+        else if( LL_DMA_TCEM_RPT_BLK_TRANSFER == regVal )
         {
             *eventId = GPDMA_TRANSFER_EVENT_2D_BLOCK;
         }
-        else if( LL_DMA_TCEM_EACH_LLITEM_TRANSFER != regVal )
+        else if( LL_DMA_TCEM_EACH_LLITEM_TRANSFER == regVal )
         {
             *eventId = GPDMA_TRANSFER_EVENT_TRANSFER;
         }
@@ -1487,6 +1511,7 @@ gpdma_RequestState_t Gpdma_Set_XferList_TriggerType( volatile gpdma_XferList_t *
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR    != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_TRG_TYPE_CNT > triggerType  )    )
     {
         uint32_t regVal = 0u;
@@ -1539,6 +1564,7 @@ gpdma_RequestState_t Gpdma_Get_XferList_TriggerType( volatile gpdma_XferList_t *
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_NULL_PTR != triggerType  )    )
     {
         uint32_t regVal = 0u;
@@ -1590,7 +1616,8 @@ gpdma_RequestState_t Gpdma_Set_XferList_TriggerSrc( volatile gpdma_XferList_t * 
 {
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
-    if( GPDMA_NULL_PTR != transferList )
+    if( ( GPDMA_NULL_PTR           != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  )    )
     {
         if( GPDMA_CHANNEL_LINEAR_2D == channelType )
         {
@@ -1627,6 +1654,7 @@ gpdma_RequestState_t Gpdma_Get_XferList_TriggerSrc( volatile gpdma_XferList_t * 
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_NULL_PTR != triggerSrc   )    )
     {
         if( GPDMA_CHANNEL_LINEAR_2D == channelType )
@@ -1664,6 +1692,7 @@ gpdma_RequestState_t Gpdma_Set_XferList_TriggerMode( volatile gpdma_XferList_t *
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR        != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_TRIGGER_MODE_CNT > triggerMode  )    )
     {
         uint32_t regVal = 0u;
@@ -1720,6 +1749,7 @@ gpdma_RequestState_t Gpdma_Get_XferList_TriggerMode( volatile gpdma_XferList_t *
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_NULL_PTR != triggerMode  )    )
     {
         uint32_t regVal = 0u;
@@ -1776,6 +1806,7 @@ gpdma_RequestState_t Gpdma_Set_XferList_RequestMode( volatile gpdma_XferList_t *
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR           != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_PERIPH_REQ_MODE_CNT > requestMode  )    )
     {
         uint32_t regVal = 0u;
@@ -1823,7 +1854,8 @@ gpdma_RequestState_t Gpdma_Get_XferList_RequestMode( volatile gpdma_XferList_t *
 {
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
-    if( GPDMA_NULL_PTR != transferList )
+    if( ( GPDMA_NULL_PTR           != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  )    )
     {
         uint32_t regVal = 0u;
 
@@ -1871,6 +1903,7 @@ gpdma_RequestState_t Gpdma_Set_XferList_Direction( volatile gpdma_XferList_t * c
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_DIR_CNT   > direction    )    )
     {
         uint32_t regVal = 0u;
@@ -1923,6 +1956,7 @@ gpdma_RequestState_t Gpdma_Get_XferList_Direction( volatile gpdma_XferList_t * c
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_NULL_PTR != direction    )    )
     {
         uint32_t regVal = 0u;
@@ -1974,7 +2008,8 @@ gpdma_RequestState_t Gpdma_Set_XferList_RequestSrc( volatile gpdma_XferList_t * 
 {
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
-    if( GPDMA_NULL_PTR != transferList )
+    if( ( GPDMA_NULL_PTR           != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  )    )
     {
         if( GPDMA_CHANNEL_LINEAR_2D == channelType )
         {
@@ -2011,6 +2046,7 @@ gpdma_RequestState_t Gpdma_Get_XferList_RequestSrc( volatile gpdma_XferList_t * 
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_NULL_PTR != requestSrc   )    )
     {
         if( GPDMA_CHANNEL_LINEAR_2D == channelType )
@@ -2048,6 +2084,7 @@ gpdma_RequestState_t Gpdma_Set_XferList_BlockSize( volatile gpdma_XferList_t * c
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR     != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_MAX_BLOCK_LEN > blockSize    )    )
     {
         if( GPDMA_CHANNEL_LINEAR_2D == channelType )
@@ -2085,6 +2122,7 @@ gpdma_RequestState_t Gpdma_Get_XferList_BlockSize( volatile gpdma_XferList_t * c
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_NULL_PTR != blockSize    )    )
     {
         if( GPDMA_CHANNEL_LINEAR_2D == channelType )
@@ -2122,6 +2160,7 @@ gpdma_RequestState_t Gpdma_Set_XferList_BlockRepeatCnt( volatile gpdma_XferList_
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR     != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_TRANSFER_LIST_BRC_MAX >= blockRepCnt )    )
     {
         if( GPDMA_CHANNEL_LINEAR_2D == channelType )
@@ -2159,6 +2198,7 @@ gpdma_RequestState_t Gpdma_Get_XferList_BlockRepeatCnt( volatile gpdma_XferList_
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_NULL_PTR != blockRepCnt  )    )
     {
         if( GPDMA_CHANNEL_LINEAR_2D == channelType )
@@ -2195,7 +2235,8 @@ gpdma_RequestState_t Gpdma_Set_XferList_SrcAddr( volatile gpdma_XferList_t * con
 {
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
-    if( GPDMA_NULL_PTR != transferList )
+    if( ( GPDMA_NULL_PTR           != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  )    )
     {
         if( GPDMA_CHANNEL_LINEAR_2D == channelType )
         {
@@ -2232,6 +2273,7 @@ gpdma_RequestState_t Gpdma_Get_XferList_SrcAddr( volatile gpdma_XferList_t * con
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_NULL_PTR != sourceAddr   )    )
     {
         if( GPDMA_CHANNEL_LINEAR_2D == channelType )
@@ -2268,7 +2310,8 @@ gpdma_RequestState_t Gpdma_Set_XferList_DestAddr( volatile gpdma_XferList_t * co
 {
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
-    if( GPDMA_NULL_PTR != transferList )
+    if( ( GPDMA_NULL_PTR           != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  )    )
     {
         if( GPDMA_CHANNEL_LINEAR_2D == channelType )
         {
@@ -2305,6 +2348,7 @@ gpdma_RequestState_t Gpdma_Get_XferList_DestAddr( volatile gpdma_XferList_t * co
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_NULL_PTR != destAddr     )    )
     {
         if( GPDMA_CHANNEL_LINEAR_2D == channelType )
@@ -2343,6 +2387,7 @@ gpdma_RequestState_t Gpdma_Set_XferList_DstOffset2D( volatile gpdma_XferList_t *
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR                    != transferList   ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_TRANSFER_OFFSET_ADDR_MAX     > blockOffset    ) &&
         ( GPDMA_REP_TRANSFER_OFFSET_ADDR_MAX > repBlockOffset )    )
     {
@@ -2384,6 +2429,7 @@ gpdma_RequestState_t Gpdma_Get_XferList_DstOffset2D( volatile gpdma_XferList_t *
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR != transferList   ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_NULL_PTR != blockOffset    ) &&
         ( GPDMA_NULL_PTR != repBlockOffset )    )
     {
@@ -2427,6 +2473,7 @@ gpdma_RequestState_t Gpdma_Set_XferList_SrcOffset2D( volatile gpdma_XferList_t *
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR                    != transferList   ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_TRANSFER_OFFSET_ADDR_MAX     > blockOffset    ) &&
         ( GPDMA_REP_TRANSFER_OFFSET_ADDR_MAX > repBlockOffset )    )
     {
@@ -2468,6 +2515,7 @@ gpdma_RequestState_t Gpdma_Get_XferList_SrcOffset2D( volatile gpdma_XferList_t *
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR != transferList   ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_NULL_PTR != blockOffset    ) &&
         ( GPDMA_NULL_PTR != repBlockOffset )    )
     {
@@ -2512,6 +2560,7 @@ gpdma_RequestState_t Gpdma_Set_XferList_NextXferAddr( volatile gpdma_XferList_t 
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR != transferList                                     ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( 0u             == ( nextAddr & GPDMA_TRANSFER_LIST_ADDR_ALIGN_MASK ) )    )
     {
         if( 0u == nextAddr )
@@ -2591,6 +2640,7 @@ gpdma_RequestState_t Gpdma_Get_XferList_NextXferAddr( volatile gpdma_XferList_t 
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_NULL_PTR != destAddr     )    )
     {
         uint32_t nextAddrOffset = 0u;
@@ -2642,6 +2692,7 @@ gpdma_RequestState_t Gpdma_Get_XferList_LinkReg( volatile gpdma_XferList_t * con
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR != transferList ) &&
+        ( GPDMA_CHANNEL_OPTION_CNT >  channelType  ) &&
         ( GPDMA_NULL_PTR != linkReg      )    )
     {
         if( GPDMA_CHANNEL_LINEAR_2D == channelType )

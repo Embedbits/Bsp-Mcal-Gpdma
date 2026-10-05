@@ -1,4 +1,9 @@
 /**
+ * \defgroup Gpdma Gpdma
+ * \brief Gpdma module
+ */
+
+/**
  * \author Mr.Nobody
  * \file Gpdma_Types.h
  * \ingroup Gpdma
