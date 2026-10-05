@@ -47,6 +47,12 @@
 /** \brief Link register value of the last transfer list node (no update, no next node) */
 #define GPDMA_TRANSFER_LIST_LINK_LAST                   ( 0u )
 
+/** \brief Maximal block repeat count of 2D channel (CBR1.BRC field) */
+#define GPDMA_TRANSFER_LIST_BRC_MAX                     ( DMA_CBR1_BRC_Msk >> DMA_CBR1_BRC_Pos )
+
+/** \brief Address bits of transfer list node not stored in the link register (LLR.LA) */
+#define GPDMA_TRANSFER_LIST_BASE_ADDR_MASK              ( 0xFFFF0000u )
+
 /* =============================== MACROS =================================== */
 
 /* ============================== TYPEDEFS ================================== */
@@ -721,11 +727,11 @@ gpdma_RequestState_t Gpdma_Set_XferList_DestDataSize( volatile gpdma_XferList_t 
 
         if( GPDMA_CHANNEL_LINEAR_2D == channelType )
         {
-            MODIFY_REG( transferList->Register[ GPDMA_TRANSFER_LIST_2D_MODE_REG_TR1 ], DMA_CTR1_SBX_Msk, regVal );
+            MODIFY_REG( transferList->Register[ GPDMA_TRANSFER_LIST_2D_MODE_REG_TR1 ], DMA_CTR1_DDW_LOG2_Msk, regVal );
         }
         else
         {
-            MODIFY_REG( transferList->Register[ GPDMA_TRANSFER_LIST_LINEAR_MODE_REG_TR1 ], DMA_CTR1_SBX_Msk, regVal );
+            MODIFY_REG( transferList->Register[ GPDMA_TRANSFER_LIST_LINEAR_MODE_REG_TR1 ], DMA_CTR1_DDW_LOG2_Msk, regVal );
         }
 
         status = GPDMA_REQUEST_OK;
@@ -821,11 +827,11 @@ gpdma_RequestState_t Gpdma_Set_XferList_SrcDataOp( volatile gpdma_XferList_t * c
 
         if( GPDMA_CHANNEL_LINEAR_2D == channelType )
         {
-            MODIFY_REG( transferList->Register[ GPDMA_TRANSFER_LIST_2D_MODE_REG_TR1 ], DMA_CTR1_DDW_LOG2_Msk, regVal );
+            MODIFY_REG( transferList->Register[ GPDMA_TRANSFER_LIST_2D_MODE_REG_TR1 ], DMA_CTR1_SBX_Msk, regVal );
         }
         else
         {
-            MODIFY_REG( transferList->Register[ GPDMA_TRANSFER_LIST_LINEAR_MODE_REG_TR1 ], DMA_CTR1_DDW_LOG2_Msk, regVal );
+            MODIFY_REG( transferList->Register[ GPDMA_TRANSFER_LIST_LINEAR_MODE_REG_TR1 ], DMA_CTR1_SBX_Msk, regVal );
         }
 
         status = GPDMA_REQUEST_OK;
@@ -1539,18 +1545,18 @@ gpdma_RequestState_t Gpdma_Get_XferList_TriggerType( volatile gpdma_XferList_t *
 
         if( GPDMA_CHANNEL_LINEAR_2D == channelType )
         {
-            regVal = transferList->Register[ GPDMA_TRANSFER_LIST_2D_MODE_REG_TR1 ] & DMA_CTR2_TRIGPOL_Msk;
+            regVal = transferList->Register[ GPDMA_TRANSFER_LIST_2D_MODE_REG_TR2 ] & DMA_CTR2_TRIGPOL_Msk;
         }
         else
         {
-            regVal = transferList->Register[ GPDMA_TRANSFER_LIST_LINEAR_MODE_REG_TR1 ] & DMA_CTR2_TRIGPOL_Msk;
+            regVal = transferList->Register[ GPDMA_TRANSFER_LIST_LINEAR_MODE_REG_TR2 ] & DMA_CTR2_TRIGPOL_Msk;
         }
 
         if( LL_DMA_TRIG_POLARITY_MASKED == regVal )
         {
             *triggerType = GPDMA_TRG_NOT_USED;
         }
-        else if( LL_DMA_TRIG_POLARITY_MASKED == regVal )
+        else if( LL_DMA_TRIG_POLARITY_RISING == regVal )
         {
             *triggerType = GPDMA_TRG_RISING;
         }
@@ -1588,11 +1594,11 @@ gpdma_RequestState_t Gpdma_Set_XferList_TriggerSrc( volatile gpdma_XferList_t * 
     {
         if( GPDMA_CHANNEL_LINEAR_2D == channelType )
         {
-            MODIFY_REG( transferList->Register[ GPDMA_TRANSFER_LIST_LINEAR_MODE_REG_TR2 ], DMA_CTR2_TRIGSEL_Msk, triggerSrc );
+            MODIFY_REG( transferList->Register[ GPDMA_TRANSFER_LIST_LINEAR_MODE_REG_TR2 ], DMA_CTR2_TRIGSEL_Msk, ( (uint32_t)triggerSrc << DMA_CTR2_TRIGSEL_Pos ) );
         }
         else
         {
-            MODIFY_REG( transferList->Register[ GPDMA_TRANSFER_LIST_2D_MODE_REG_TR2 ], DMA_CTR2_TRIGSEL_Msk, triggerSrc );
+            MODIFY_REG( transferList->Register[ GPDMA_TRANSFER_LIST_2D_MODE_REG_TR2 ], DMA_CTR2_TRIGSEL_Msk, ( (uint32_t)triggerSrc << DMA_CTR2_TRIGSEL_Pos ) );
         }
 
         status = GPDMA_REQUEST_OK;
@@ -1625,11 +1631,11 @@ gpdma_RequestState_t Gpdma_Get_XferList_TriggerSrc( volatile gpdma_XferList_t * 
     {
         if( GPDMA_CHANNEL_LINEAR_2D == channelType )
         {
-            *triggerSrc = transferList->Register[ GPDMA_TRANSFER_LIST_2D_MODE_REG_TR2 ] & DMA_CTR2_TRIGSEL_Msk;
+            *triggerSrc = (gpdma_TrgSrcId_t)( ( transferList->Register[ GPDMA_TRANSFER_LIST_2D_MODE_REG_TR2 ] & DMA_CTR2_TRIGSEL_Msk ) >> DMA_CTR2_TRIGSEL_Pos );
         }
         else
         {
-            *triggerSrc = transferList->Register[ GPDMA_TRANSFER_LIST_LINEAR_MODE_REG_TR2 ] & DMA_CTR2_TRIGSEL_Msk;
+            *triggerSrc = (gpdma_TrgSrcId_t)( ( transferList->Register[ GPDMA_TRANSFER_LIST_LINEAR_MODE_REG_TR2 ] & DMA_CTR2_TRIGSEL_Msk ) >> DMA_CTR2_TRIGSEL_Pos );
         }
 
         status = GPDMA_REQUEST_OK;
@@ -2116,11 +2122,11 @@ gpdma_RequestState_t Gpdma_Set_XferList_BlockRepeatCnt( volatile gpdma_XferList_
     gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
 
     if( ( GPDMA_NULL_PTR     != transferList ) &&
-        ( GPDMA_MAX_BLOCK_LEN > blockRepCnt  )    )
+        ( GPDMA_TRANSFER_LIST_BRC_MAX >= blockRepCnt )    )
     {
         if( GPDMA_CHANNEL_LINEAR_2D == channelType )
         {
-            MODIFY_REG( transferList->Register[ GPDMA_TRANSFER_LIST_2D_MODE_REG_BR1 ], DMA_CBR1_BRC_Msk, (uint32_t)blockRepCnt );
+            MODIFY_REG( transferList->Register[ GPDMA_TRANSFER_LIST_2D_MODE_REG_BR1 ], DMA_CBR1_BRC_Msk, ( (uint32_t)blockRepCnt << DMA_CBR1_BRC_Pos ) );
         }
         else
         {
@@ -2157,11 +2163,11 @@ gpdma_RequestState_t Gpdma_Get_XferList_BlockRepeatCnt( volatile gpdma_XferList_
     {
         if( GPDMA_CHANNEL_LINEAR_2D == channelType )
         {
-            *blockRepCnt = transferList->Register[ GPDMA_TRANSFER_LIST_2D_MODE_REG_BR1 ] & DMA_CBR1_BRC_Msk;
+            *blockRepCnt = (gpdma_BlockRep_t)( ( transferList->Register[ GPDMA_TRANSFER_LIST_2D_MODE_REG_BR1 ] & DMA_CBR1_BRC_Msk ) >> DMA_CBR1_BRC_Pos );
         }
         else
         {
-            *blockRepCnt = transferList->Register[ GPDMA_TRANSFER_LIST_LINEAR_MODE_REG_BR1 ] & DMA_CBR1_BRC_Msk;
+            *blockRepCnt = (gpdma_BlockRep_t)( ( transferList->Register[ GPDMA_TRANSFER_LIST_LINEAR_MODE_REG_BR1 ] & DMA_CBR1_BRC_Msk ) >> DMA_CBR1_BRC_Pos );
         }
 
         status = GPDMA_REQUEST_OK;
@@ -2572,10 +2578,13 @@ gpdma_RequestState_t Gpdma_Set_XferList_NextXferAddr( volatile gpdma_XferList_t 
  *
  * \param transferList [in]: Transfer list node.
  * \param channelType  [in]: Type of the channel the transfer list belongs to, value from \ref gpdma_ChannelType_t.
- * \param destAddr    [out]: Pointer to store destination address. Must not be NULL.
+ * \param destAddr    [out]: Pointer to store address of the next node (0 - last node). Must not be NULL.
  *
  * \return State of request execution. Returns \ref GPDMA_REQUEST_OK if request was
  *         success, otherwise returns \ref GPDMA_REQUEST_ERROR.
+ *
+ * \note Link register holds only lower 16 bits of the address, upper 16 bits are taken
+ *       from the node address (all nodes of the list are in the same 64 kB region).
  */
 gpdma_RequestState_t Gpdma_Get_XferList_NextXferAddr( volatile gpdma_XferList_t * const transferList, gpdma_ChannelType_t channelType, gpdma_DataAddr_t * const destAddr )
 {
@@ -2584,13 +2593,26 @@ gpdma_RequestState_t Gpdma_Get_XferList_NextXferAddr( volatile gpdma_XferList_t 
     if( ( GPDMA_NULL_PTR != transferList ) &&
         ( GPDMA_NULL_PTR != destAddr     )    )
     {
+        uint32_t nextAddrOffset = 0u;
+
         if( GPDMA_CHANNEL_LINEAR_2D == channelType )
         {
-            *destAddr = transferList->Register[ GPDMA_TRANSFER_LIST_2D_MODE_REG_LLR ] & DMA_CLLR_LA_Msk;
+            nextAddrOffset = transferList->Register[ GPDMA_TRANSFER_LIST_2D_MODE_REG_LLR ] & DMA_CLLR_LA_Msk;
         }
         else
         {
-            *destAddr = transferList->Register[ GPDMA_TRANSFER_LIST_LINEAR_MODE_REG_LLR ] & DMA_CLLR_LA_Msk;
+            nextAddrOffset = transferList->Register[ GPDMA_TRANSFER_LIST_LINEAR_MODE_REG_LLR ] & DMA_CLLR_LA_Msk;
+        }
+
+        if( 0u == nextAddrOffset )
+        {
+            /* Last node of the list */
+            *destAddr = 0u;
+        }
+        else
+        {
+            /* Nodes of one list are in the same 64 kB region (CLBAR) - upper address bits are taken from the node */
+            *destAddr = ( (uint32_t)(uintptr_t)transferList & GPDMA_TRANSFER_LIST_BASE_ADDR_MASK ) | nextAddrOffset;
         }
 
         status = GPDMA_REQUEST_OK;

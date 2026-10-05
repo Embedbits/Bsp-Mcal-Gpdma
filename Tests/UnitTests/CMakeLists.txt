@@ -1,0 +1,20 @@
+#======================== Unit tests configuration ============================#
+# Unit tests of Gpdma module. Registered in module CMakeLists.txt by
+# UnitTesting_AddPath() and created by UnitTesting_Generate() in "UnitTest"
+# build (see EmBi_Platform/CMake/UnitTesting/README.md).
+
+get_filename_component(GPDMA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
+get_filename_component(MCAL_DIR  "${GPDMA_DIR}/.." ABSOLUTE)
+
+UnitTesting_Add_Test(
+    NAME            Gpdma
+    TEST_SOURCE     Test_Gpdma.c
+    UUT_SOURCES     ${GPDMA_DIR}/Gpdma.c
+                    ${GPDMA_DIR}/Gpdma_Tl.c
+    MOCK_HEADERS    ${MCAL_DIR}/Rcc/Rcc_Port.h
+                    ${MCAL_DIR}/Nvic/Nvic_Port.h
+    INCLUDE_DIRS    ${GPDMA_DIR}
+                    ${MCAL_DIR}/Rcc
+                    ${MCAL_DIR}/Nvic
+    LINK_LIBS       Ral_Lib
+)

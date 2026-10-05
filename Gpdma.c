@@ -31,6 +31,10 @@
  *  holds upper 16 bits, all nodes of a channel shall be located in one 64 KB region */
 #define GPDMA_XFER_LIST_REGION_MASK   ( DMA_CLBAR_LBA_Msk )
 
+/** Count of channel status reads waiting for effective suspension of the channel
+ *  (ongoing single / burst transfer is finished first) */
+#define GPDMA_SUSPEND_TIMEOUT_RAW     ( 10000u )
+
 
 /** Global Interrupt Request (IRQ) flag identification for use in \ref DMA_GET_ACTIVE_IRQ_FLAG */
 #define DMA_GI_IRQ_FLAG                                 ( 0u )
@@ -1219,11 +1223,19 @@ gpdma_RequestState_t Gpdma_Set_ChannelActive( gpdma_PeriphId_t periphId, gpdma_C
 /**
  * \brief Set DMA channel inactive
  *
+ * Enabled channel is suspended first and reset after the suspension is effective
+ * (CSR.SUSPF), disabled channel is reset directly. Channel reset is ignored by HW
+ * if the channel is enabled and not suspended (RM0481 - CCR.RESET), so suspend and
+ * reset can not be requested by one write (LL_DMA_DisableChannel()).
+ *
+ * \note Channel reset requires reconfiguration of block size, source and destination
+ *       address before the next activation.
+ *
  * \param periphId   [in]: The DMA bus identifier.
  * \param channelId  [in]: The DMA channel identifier.
  *
  * \return Processing request state. If request executed successfully returns "OK",
- *         otherwise returns error.
+ *         otherwise (also if the suspension is not effective in time) returns error.
  */
 gpdma_RequestState_t Gpdma_Set_ChannelInactive( gpdma_PeriphId_t periphId, gpdma_ChannelId_t channelId )
 {
@@ -1232,11 +1244,48 @@ gpdma_RequestState_t Gpdma_Set_ChannelInactive( gpdma_PeriphId_t periphId, gpdma
     if( ( GPDMA_PERIPH_CNT  > periphId  ) &&
         ( GPDMA_CHANNEL_CNT > channelId )    )
     {
-        /* Disable the DMA channel */
-        LL_DMA_DisableChannel( gpdma_PeriphConf[periphId].DmaReg,
-                               gpdma_PeriphConf[periphId].ChannelsConfig[channelId].ChannelReg );
+        DMA_TypeDef * const dmaReg     = gpdma_PeriphConf[ periphId ].DmaReg;
+        const uint32_t      channelReg = gpdma_PeriphConf[ periphId ].ChannelsConfig[ channelId ].ChannelReg;
 
         status = GPDMA_REQUEST_OK;
+
+        if( 0u != LL_DMA_IsEnabledChannel( dmaReg, channelReg ) )
+        {
+            LL_DMA_SuspendChannel( dmaReg, channelReg );
+
+            status = GPDMA_REQUEST_ERROR;
+
+            for( uint32_t iterationCnt = 0u; GPDMA_SUSPEND_TIMEOUT_RAW > iterationCnt; iterationCnt++ )
+            {
+                /* Channel is suspended or finished its transfer meanwhile */
+                if( ( 0u != LL_DMA_IsActiveFlag_SUSP( dmaReg, channelReg ) ) ||
+                    ( 0u == LL_DMA_IsEnabledChannel( dmaReg, channelReg )  )    )
+                {
+                    status = GPDMA_REQUEST_OK;
+                    break;
+                }
+                else
+                {
+                    /* Ongoing single / burst transfer is not finished yet */
+                }
+            }
+        }
+        else
+        {
+            /* Channel is disabled - reset is effective immediately */
+        }
+
+        if( GPDMA_REQUEST_OK == status )
+        {
+            LL_DMA_ResetChannel( dmaReg, channelReg );
+
+            /* Suspension of disabled channel is not reported as error */
+            LL_DMA_ClearFlag_SUSP( dmaReg, channelReg );
+        }
+        else
+        {
+            /* Channel stays suspended, reset would be ignored */
+        }
     }
     else
     {
@@ -4565,21 +4614,8 @@ static inline void Gpdma_GlobalIsrHandler( gpdma_PeriphId_t periphId, gpdma_Chan
     uint32_t dma_base_addr = (uint32_t)gpdma_PeriphConf[ periphId ].DmaReg;
     uint32_t irqReg        = READ_REG( ( (DMA_Channel_TypeDef *)(dma_base_addr + LL_DMA_CH_OFFSET_TAB[gpdma_PeriphConf[ periphId ].ChannelsConfig[ channelId ].ChannelReg] ) )->CSR );
 
-    if( 0u != ( irqReg & DMA_CSR_TCF ) )
-    {
-        LL_DMA_ClearFlag_TC( gpdma_PeriphConf[ periphId ].DmaReg,
-                             gpdma_PeriphConf[ periphId ].ChannelsConfig[ channelId ].ChannelReg );
-
-        if( GPDMA_NULL_PTR != gpdma_PeriphConf[ periphId ].IsrCallbacks[ channelId ].TransferCompleteCallback )
-        {
-            gpdma_PeriphConf[ periphId ].IsrCallbacks[ channelId ].TransferCompleteCallback();
-        }
-        else
-        {
-            /* Interrupt callback is not configured */
-        }
-    }
-
+    /* Half transfer is handled first - both flags may be pending (short transfer, interrupt latency),
+     * callbacks are called in the order of the events. */
     if( 0u != ( irqReg & DMA_CFCR_HTF ) )
     {
         LL_DMA_ClearFlag_HT( gpdma_PeriphConf[ periphId ].DmaReg,
@@ -4588,6 +4624,21 @@ static inline void Gpdma_GlobalIsrHandler( gpdma_PeriphId_t periphId, gpdma_Chan
         if( GPDMA_NULL_PTR != gpdma_PeriphConf[ periphId ].IsrCallbacks[ channelId ].HalfTransferCallback )
         {
             gpdma_PeriphConf[ periphId ].IsrCallbacks[ channelId ].HalfTransferCallback();
+        }
+        else
+        {
+            /* Interrupt callback is not configured */
+        }
+    }
+
+    if( 0u != ( irqReg & DMA_CSR_TCF ) )
+    {
+        LL_DMA_ClearFlag_TC( gpdma_PeriphConf[ periphId ].DmaReg,
+                             gpdma_PeriphConf[ periphId ].ChannelsConfig[ channelId ].ChannelReg );
+
+        if( GPDMA_NULL_PTR != gpdma_PeriphConf[ periphId ].IsrCallbacks[ channelId ].TransferCompleteCallback )
+        {
+            gpdma_PeriphConf[ periphId ].IsrCallbacks[ channelId ].TransferCompleteCallback();
         }
         else
         {
