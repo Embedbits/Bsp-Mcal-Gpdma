@@ -53,10 +53,10 @@ gpdma_RequestState_t    Gpdma_Get_PauseState                ( gpdma_PeriphId_t p
 
 /*------------------- Transfer configuration functionality -------------------*/
 
-gpdma_RequestState_t    Gpdma_Set_XferList_SrcPort          ( volatile gpdma_XferList_t * const transferList, gpdma_ChannelType_t channelType, gpdma_PortId_t sourcePort );
+gpdma_RequestState_t    Gpdma_Set_XferList_SrcPort          ( volatile gpdma_XferList_t * const transferList, gpdma_ChannelType_t channelType, gpdma_PortId_t sourcePort, gpdma_Direction_t direction );
 gpdma_RequestState_t    Gpdma_Get_XferList_SrcPort          ( volatile gpdma_XferList_t * const transferList, gpdma_ChannelType_t channelType, gpdma_PortId_t * const sourcePort );
 
-gpdma_RequestState_t    Gpdma_Set_XferList_DestPort         ( volatile gpdma_XferList_t * const transferList, gpdma_ChannelType_t channelType, gpdma_PortId_t destPort );
+gpdma_RequestState_t    Gpdma_Set_XferList_DestPort         ( volatile gpdma_XferList_t * const transferList, gpdma_ChannelType_t channelType, gpdma_PortId_t destPort, gpdma_Direction_t direction );
 gpdma_RequestState_t    Gpdma_Get_XferList_DestPort         ( volatile gpdma_XferList_t * const transferList, gpdma_ChannelType_t channelType, gpdma_PortId_t * const destPort );
 
 gpdma_RequestState_t    Gpdma_Set_XferList_SrcDataSize      ( volatile gpdma_XferList_t * const transferList, gpdma_ChannelType_t channelType, gpdma_DataSize_t srcDataSize );
@@ -130,6 +130,7 @@ gpdma_RequestState_t    Gpdma_Get_XferList_SrcOffset2D      ( volatile gpdma_Xfe
 
 gpdma_RequestState_t    Gpdma_Set_XferList_NextXferAddr     ( volatile gpdma_XferList_t * const transferList, gpdma_ChannelType_t channelType, gpdma_DataAddr_t destAddr );
 gpdma_RequestState_t    Gpdma_Get_XferList_NextXferAddr     ( volatile gpdma_XferList_t * const transferList, gpdma_ChannelType_t channelType, gpdma_DataAddr_t * const destAddr );
+gpdma_RequestState_t    Gpdma_Get_XferList_LinkReg          ( volatile gpdma_XferList_t * const transferList, gpdma_ChannelType_t channelType, gpdma_XferLinkReg_t * const linkReg );
 
 /*-------------------------- Primitive functionality -------------------------*/
 
@@ -150,6 +151,9 @@ gpdma_RequestState_t    Gpdma_Get_ConfigurationPort         ( gpdma_PeriphId_t p
 
 gpdma_RequestState_t    Gpdma_Set_XferListBaseAddr          ( gpdma_PeriphId_t periphId, gpdma_ChannelId_t channelId, gpdma_DataAddr_t baseAddr );
 gpdma_RequestState_t    Gpdma_Get_XferListBaseAddr          ( gpdma_PeriphId_t periphId, gpdma_ChannelId_t channelId, gpdma_DataAddr_t * const baseAddr );
+
+gpdma_RequestState_t    Gpdma_Set_XferListLink              ( gpdma_PeriphId_t periphId, gpdma_ChannelId_t channelId, gpdma_XferLinkReg_t linkReg );
+gpdma_RequestState_t    Gpdma_Get_XferListLink              ( gpdma_PeriphId_t periphId, gpdma_ChannelId_t channelId, gpdma_XferLinkReg_t * const linkReg );
 
 
 gpdma_RequestState_t    Gpdma_Set_SourceDataSize            ( gpdma_PeriphId_t periphId, gpdma_ChannelId_t channelId, gpdma_DataSize_t srcDataSize );

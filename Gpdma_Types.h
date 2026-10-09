@@ -1,4 +1,9 @@
 /**
+ * \defgroup Gpdma Gpdma
+ * \brief Gpdma module
+ */
+
+/**
  * \author Mr.Nobody
  * \file Gpdma_Types.h
  * \ingroup Gpdma
@@ -101,6 +106,10 @@ typedef uint32_t gpdma_DstAddr_t;
 typedef uint32_t gpdma_DataAddr_t;
 
 
+/** Linked-list link register (CxLLR) value type definition */
+typedef uint32_t gpdma_XferLinkReg_t;
+
+
 /** \brief Data count type definition */
 typedef uint16_t gpdma_ByteCnt_t;
 
@@ -188,23 +197,23 @@ typedef enum
 /** Enumeration of available channels for all DMA peripherals */
 typedef enum
 {
-    GPDMA_CHANNEL_0 = 0u, /**< DMA transfer channel 0 (FIFO size 8 bytes) linear addressing mode         */
-    GPDMA_CHANNEL_1,      /**< DMA transfer channel 1 (FIFO size 8 bytes) linear addressing mode         */
-    GPDMA_CHANNEL_2,      /**< DMA transfer channel 2 (FIFO size 8 bytes) linear addressing mode         */
-    GPDMA_CHANNEL_3,      /**< DMA transfer channel 3 (FIFO size 8 bytes) linear addressing mode         */
-    GPDMA_CHANNEL_4,      /**< DMA transfer channel 4 (FIFO size 8 bytes) linear addressing mode         */
-    GPDMA_CHANNEL_5,      /**< DMA transfer channel 5 (FIFO size 8 bytes) linear addressing mode         */
-    GPDMA_CHANNEL_6,      /**< DMA transfer channel 6 (FIFO size 8 bytes) linear addressing mode         */
-    GPDMA_CHANNEL_7,      /**< DMA transfer channel 7 (FIFO size 8 bytes) linear addressing mode         */
-    GPDMA_CHANNEL_8,      /**< DMA transfer channel 8 (FIFO size 8 bytes) linear addressing mode         */
-    GPDMA_CHANNEL_9,      /**< DMA transfer channel 9 (FIFO size 8 bytes) linear addressing mode         */
-    GPDMA_CHANNEL_10,     /**< DMA transfer channel 10 (FIFO size 8 bytes) linear addressing mode        */
-    GPDMA_CHANNEL_11,     /**< DMA transfer channel 11 (FIFO size 8 bytes) linear addressing mode        */
-    GPDMA_CHANNEL_12,     /**< DMA transfer channel 12 (FIFO size 32 bytes) linear or 2D addressing mode */
-    GPDMA_CHANNEL_13,     /**< DMA transfer channel 13 (FIFO size 32 bytes) linear or 2D addressing mode */
-    GPDMA_CHANNEL_14,     /**< DMA transfer channel 14 (FIFO size 32 bytes) linear or 2D addressing mode */
-    GPDMA_CHANNEL_15,     /**< DMA transfer channel 15 (FIFO size 32 bytes) linear or 2D addressing mode */
-    GPDMA_CHANNEL_CNT     /**< Count of available channels for all DMA peripherals                       */
+    GPDMA_CHANNEL_0 = 0u, /**< DMA transfer channel 0 (FIFO size 8 bytes) linear addressing mode           */
+    GPDMA_CHANNEL_1,      /**< DMA transfer channel 1 (FIFO size 8 bytes) linear addressing mode           */
+    GPDMA_CHANNEL_2,      /**< DMA transfer channel 2 (FIFO size 8 bytes) linear addressing mode           */
+    GPDMA_CHANNEL_3,      /**< DMA transfer channel 3 (FIFO size 8 bytes) linear addressing mode           */
+    GPDMA_CHANNEL_4,      /**< DMA transfer channel 4 (FIFO size 8 bytes) linear addressing mode           */
+    GPDMA_CHANNEL_5,      /**< DMA transfer channel 5 (FIFO size 8 bytes) linear addressing mode           */
+    GPDMA_CHANNEL_6,      /**< DMA transfer channel 6 (FIFO size 8 bytes) linear addressing mode           */
+    GPDMA_CHANNEL_7,      /**< DMA transfer channel 7 (FIFO size 8 bytes) linear addressing mode           */
+    GPDMA_CHANNEL_8,      /**< DMA transfer channel 8 (FIFO size 8 bytes) linear addressing mode           */
+    GPDMA_CHANNEL_9,      /**< DMA transfer channel 9 (FIFO size 8 bytes) linear addressing mode           */
+    GPDMA_CHANNEL_10,     /**< DMA transfer channel 10 (FIFO size 8 bytes) linear addressing mode          */
+    GPDMA_CHANNEL_11,     /**< DMA transfer channel 11 (FIFO size 8 bytes) linear addressing mode          */
+    GPDMA_CHANNEL_12,     /**< DMA transfer channel 12 (FIFO size 32 bytes) linear or 2D addressing mode   */
+    GPDMA_CHANNEL_13,     /**< DMA transfer channel 13 (FIFO size 32 bytes) linear or 2D addressing mode   */
+    GPDMA_CHANNEL_14,     /**< DMA transfer channel 14 (FIFO size 32 bytes) linear or 2D addressing mode   */
+    GPDMA_CHANNEL_15,     /**< DMA transfer channel 15 (FIFO size 32 bytes) linear or 2D addressing mode   */
+    GPDMA_CHANNEL_CNT     /**< Count of available channels for all DMA peripherals                     */
 }   gpdma_ChannelId_t;
 
 
@@ -300,169 +309,155 @@ typedef enum
 
 typedef enum gpdma_PeriphReqId_t
 {
-    GPDMA_REQ_ADC1         = LL_GPDMA1_REQUEST_ADC1        , /**< GPDMA1 HW Request is ADC1         */
-#if defined (ADC2)
-    GPDMA_REQ_ADC2         = LL_GPDMA1_REQUEST_ADC2        , /**< GPDMA1 HW request is ADC2         */
-#endif /* ADC2 */
-    GPDMA_REQ_ADC4         = LL_GPDMA1_REQUEST_ADC4        , /**< GPDMA1 HW Request is ADC4         */
-
-    GPDMA_REQ_DAC1_CH1     = LL_GPDMA1_REQUEST_DAC1_CH1    , /**< GPDMA1 HW Request is DAC1_CH1     */
-    GPDMA_REQ_DAC1_CH2     = LL_GPDMA1_REQUEST_DAC1_CH2    , /**< GPDMA1 HW Request is DAC1_CH2     */
-
-    GPDMA_REQ_TIM1_CH1     = LL_GPDMA1_REQUEST_TIM1_CH1    , /**< GPDMA1 HW Request is TIM1_CH1     */
-    GPDMA_REQ_TIM1_CH2     = LL_GPDMA1_REQUEST_TIM1_CH2    , /**< GPDMA1 HW Request is TIM1_CH2     */
-    GPDMA_REQ_TIM1_CH3     = LL_GPDMA1_REQUEST_TIM1_CH3    , /**< GPDMA1 HW Request is TIM1_CH3     */
-    GPDMA_REQ_TIM1_CH4     = LL_GPDMA1_REQUEST_TIM1_CH4    , /**< GPDMA1 HW Request is TIM1_CH4     */
-    GPDMA_REQ_TIM1_UP      = LL_GPDMA1_REQUEST_TIM1_UP     , /**< GPDMA1 HW Request is TIM1_UP      */
-    GPDMA_REQ_TIM1_TRIG    = LL_GPDMA1_REQUEST_TIM1_TRIG   , /**< GPDMA1 HW Request is TIM1_TRIG    */
-    GPDMA_REQ_TIM1_COM     = LL_GPDMA1_REQUEST_TIM1_COM    , /**< GPDMA1 HW Request is TIM1_COM     */
-    GPDMA_REQ_TIM2_CH1     = LL_GPDMA1_REQUEST_TIM2_CH1    , /**< GPDMA1 HW Request is TIM2_CH1     */
-    GPDMA_REQ_TIM2_CH2     = LL_GPDMA1_REQUEST_TIM2_CH2    , /**< GPDMA1 HW Request is TIM2_CH2     */
-    GPDMA_REQ_TIM2_CH3     = LL_GPDMA1_REQUEST_TIM2_CH3    , /**< GPDMA1 HW Request is TIM2_CH3     */
-    GPDMA_REQ_TIM2_CH4     = LL_GPDMA1_REQUEST_TIM2_CH4    , /**< GPDMA1 HW Request is TIM2_CH4     */
-    GPDMA_REQ_TIM2_UP      = LL_GPDMA1_REQUEST_TIM2_UP     , /**< GPDMA1 HW Request is TIM2_UP      */
-    GPDMA_REQ_TIM3_CH1     = LL_GPDMA1_REQUEST_TIM3_CH1    , /**< GPDMA1 HW Request is TIM3_CH1     */
-    GPDMA_REQ_TIM3_CH2     = LL_GPDMA1_REQUEST_TIM3_CH2    , /**< GPDMA1 HW Request is TIM3_CH2     */
-    GPDMA_REQ_TIM3_CH3     = LL_GPDMA1_REQUEST_TIM3_CH3    , /**< GPDMA1 HW Request is TIM3_CH3     */
-    GPDMA_REQ_TIM3_CH4     = LL_GPDMA1_REQUEST_TIM3_CH4    , /**< GPDMA1 HW Request is TIM3_CH4     */
-    GPDMA_REQ_TIM3_UP      = LL_GPDMA1_REQUEST_TIM3_UP     , /**< GPDMA1 HW Request is TIM3_UP      */
-    GPDMA_REQ_TIM3_TRIG    = LL_GPDMA1_REQUEST_TIM3_TRIG   , /**< GPDMA1 HW Request is TIM3_TRIG    */
-    GPDMA_REQ_TIM4_CH1     = LL_GPDMA1_REQUEST_TIM4_CH1    , /**< GPDMA1 HW Request is TIM4_CH1     */
-    GPDMA_REQ_TIM4_CH2     = LL_GPDMA1_REQUEST_TIM4_CH2    , /**< GPDMA1 HW Request is TIM4_CH2     */
-    GPDMA_REQ_TIM4_CH3     = LL_GPDMA1_REQUEST_TIM4_CH3    , /**< GPDMA1 HW Request is TIM4_CH3     */
-    GPDMA_REQ_TIM4_CH4     = LL_GPDMA1_REQUEST_TIM4_CH4    , /**< GPDMA1 HW Request is TIM4_CH4     */
-    GPDMA_REQ_TIM4_UP      = LL_GPDMA1_REQUEST_TIM4_UP     , /**< GPDMA1 HW Request is TIM4_UP      */
-    GPDMA_REQ_TIM5_CH1     = LL_GPDMA1_REQUEST_TIM5_CH1    , /**< GPDMA1 HW Request is TIM5_CH1     */
-    GPDMA_REQ_TIM5_CH2     = LL_GPDMA1_REQUEST_TIM5_CH2    , /**< GPDMA1 HW Request is TIM5_CH2     */
-    GPDMA_REQ_TIM5_CH3     = LL_GPDMA1_REQUEST_TIM5_CH3    , /**< GPDMA1 HW Request is TIM5_CH3     */
-    GPDMA_REQ_TIM5_CH4     = LL_GPDMA1_REQUEST_TIM5_CH4    , /**< GPDMA1 HW Request is TIM5_CH4     */
-    GPDMA_REQ_TIM5_UP      = LL_GPDMA1_REQUEST_TIM5_UP     , /**< GPDMA1 HW Request is TIM5_UP      */
-    GPDMA_REQ_TIM5_TRIG    = LL_GPDMA1_REQUEST_TIM5_TRIG   , /**< GPDMA1 HW Request is TIM5_TRIG    */
-    GPDMA_REQ_TIM6_UP      = LL_GPDMA1_REQUEST_TIM6_UP     , /**< GPDMA1 HW Request is TIM6_UP      */
-    GPDMA_REQ_TIM7_UP      = LL_GPDMA1_REQUEST_TIM7_UP     , /**< GPDMA1 HW Request is TIM7_UP      */
-    GPDMA_REQ_TIM8_CH1     = LL_GPDMA1_REQUEST_TIM8_CH1    , /**< GPDMA1 HW Request is TIM8_CH1     */
-    GPDMA_REQ_TIM8_CH2     = LL_GPDMA1_REQUEST_TIM8_CH2    , /**< GPDMA1 HW Request is TIM8_CH2     */
-    GPDMA_REQ_TIM8_CH3     = LL_GPDMA1_REQUEST_TIM8_CH3    , /**< GPDMA1 HW Request is TIM8_CH3     */
-    GPDMA_REQ_TIM8_CH4     = LL_GPDMA1_REQUEST_TIM8_CH4    , /**< GPDMA1 HW Request is TIM8_CH4     */
-    GPDMA_REQ_TIM8_UP      = LL_GPDMA1_REQUEST_TIM8_UP     , /**< GPDMA1 HW Request is TIM8_UP      */
-    GPDMA_REQ_TIM8_TRIG    = LL_GPDMA1_REQUEST_TIM8_TRIG   , /**< GPDMA1 HW Request is TIM8_TRIG    */
-    GPDMA_REQ_TIM8_COM     = LL_GPDMA1_REQUEST_TIM8_COM    , /**< GPDMA1 HW Request is TIM8_COM     */
-    GPDMA_REQ_TIM15_CH1    = LL_GPDMA1_REQUEST_TIM15_CH1   , /**< GPDMA1 HW Request is TIM15_CH1    */
-    GPDMA_REQ_TIM15_UP     = LL_GPDMA1_REQUEST_TIM15_UP    , /**< GPDMA1 HW Request is TIM15_UP     */
-    GPDMA_REQ_TIM15_TRIG   = LL_GPDMA1_REQUEST_TIM15_TRIG  , /**< GPDMA1 HW Request is TIM15_TRIG   */
-    GPDMA_REQ_TIM15_COM    = LL_GPDMA1_REQUEST_TIM15_COM   , /**< GPDMA1 HW Request is TIM15_COM    */
-    GPDMA_REQ_TIM16_CH1    = LL_GPDMA1_REQUEST_TIM16_CH1   , /**< GPDMA1 HW Request is TIM16_CH1    */
-    GPDMA_REQ_TIM16_UP     = LL_GPDMA1_REQUEST_TIM16_UP    , /**< GPDMA1 HW Request is TIM16_UP     */
-    GPDMA_REQ_TIM17_CH1    = LL_GPDMA1_REQUEST_TIM17_CH1   , /**< GPDMA1 HW Request is TIM17_CH1    */
-    GPDMA_REQ_TIM17_UP     = LL_GPDMA1_REQUEST_TIM17_UP    , /**< GPDMA1 HW Request is TIM17_UP     */
-    GPDMA_REQ_LPTIM1_IC1   = LL_GPDMA1_REQUEST_LPTIM1_IC1  , /**< GPDMA1 HW Request is LPTIM1_IC1   */
-    GPDMA_REQ_LPTIM1_IC2   = LL_GPDMA1_REQUEST_LPTIM1_IC2  , /**< GPDMA1 HW Request is LPTIM1_IC2   */
-    GPDMA_REQ_LPTIM1_UE    = LL_GPDMA1_REQUEST_LPTIM1_UE   , /**< GPDMA1 HW Request is LPTIM1_UE    */
-    GPDMA_REQ_LPTIM2_IC1   = LL_GPDMA1_REQUEST_LPTIM2_IC1  , /**< GPDMA1 HW Request is LPTIM2_IC1   */
-    GPDMA_REQ_LPTIM2_IC2   = LL_GPDMA1_REQUEST_LPTIM2_IC2  , /**< GPDMA1 HW Request is LPTIM2_IC2   */
-    GPDMA_REQ_LPTIM2_UE    = LL_GPDMA1_REQUEST_LPTIM2_UE   , /**< GPDMA1 HW Request is LPTIM2_UE    */
-    GPDMA_REQ_LPTIM3_IC1   = LL_GPDMA1_REQUEST_LPTIM3_IC1  , /**< GPDMA1 HW Request is LPTIM3_IC1   */
-    GPDMA_REQ_LPTIM3_IC2   = LL_GPDMA1_REQUEST_LPTIM3_IC2  , /**< GPDMA1 HW Request is LPTIM3_IC2   */
-    GPDMA_REQ_LPTIM3_UE    = LL_GPDMA1_REQUEST_LPTIM3_UE   , /**< GPDMA1 HW Request is LPTIM3_UE    */
-
-    GPDMA_REQ_I2C1_RX      = LL_GPDMA1_REQUEST_I2C1_RX     , /**< GPDMA1 HW Request is I2C1_RX      */
-    GPDMA_REQ_I2C1_TX      = LL_GPDMA1_REQUEST_I2C1_TX     , /**< GPDMA1 HW Request is I2C1_TX      */
-    GPDMA_REQ_I2C1_EVC     = LL_GPDMA1_REQUEST_I2C1_EVC    , /**< GPDMA1 HW Request is I2C1_EVC     */
-    GPDMA_REQ_I2C2_RX      = LL_GPDMA1_REQUEST_I2C2_RX     , /**< GPDMA1 HW Request is I2C2_RX      */
-    GPDMA_REQ_I2C2_TX      = LL_GPDMA1_REQUEST_I2C2_TX     , /**< GPDMA1 HW Request is I2C2_TX      */
-    GPDMA_REQ_I2C2_EVC     = LL_GPDMA1_REQUEST_I2C2_EVC    , /**< GPDMA1 HW Request is I2C2_EVC     */
-    GPDMA_REQ_I2C3_RX      = LL_GPDMA1_REQUEST_I2C3_RX     , /**< GPDMA1 HW Request is I2C3_RX      */
-    GPDMA_REQ_I2C3_TX      = LL_GPDMA1_REQUEST_I2C3_TX     , /**< GPDMA1 HW Request is I2C3_TX      */
-    GPDMA_REQ_I2C3_EVC     = LL_GPDMA1_REQUEST_I2C3_EVC    , /**< GPDMA1 HW Request is I2C3_EVC     */
-    GPDMA_REQ_I2C4_RX      = LL_GPDMA1_REQUEST_I2C4_RX     , /**< GPDMA1 HW Request is I2C4_RX      */
-    GPDMA_REQ_I2C4_TX      = LL_GPDMA1_REQUEST_I2C4_TX     , /**< GPDMA1 HW Request is I2C4_TX      */
-    GPDMA_REQ_I2C4_EVC     = LL_GPDMA1_REQUEST_I2C4_EVC    , /**< GPDMA1 HW Request is I2C4_EVC     */
-#if defined (I2C5)
-    GPDMA_REQ_I2C5_RX      = LL_GPDMA1_REQUEST_I2C5_RX     , /**< GPDMA1 HW request is I2C5_RX      */
-    GPDMA_REQ_I2C5_TX      = LL_GPDMA1_REQUEST_I2C5_TX     , /**< GPDMA1 HW request is I2C5_TX      */
-    GPDMA_REQ_I2C5_EVC     = LL_GPDMA1_REQUEST_I2C5_EVC    , /**< GPDMA1 HW request is I2C5_EVC     */
-#endif /* I2C5 */
-#if defined (I2C6)
-    GPDMA_REQ_I2C6_RX      = LL_GPDMA1_REQUEST_I2C6_RX     , /**< GPDMA1 HW request is I2C6_RX      */
-    GPDMA_REQ_I2C6_TX      = LL_GPDMA1_REQUEST_I2C6_TX     , /**< GPDMA1 HW request is I2C6_TX      */
-    GPDMA_REQ_I2C6_EVC     = LL_GPDMA1_REQUEST_I2C6_EVC    , /**< GPDMA1 HW request is I2C6_EVC     */
-#endif /* I2C6 */
-
-    GPDMA_REQ_SPI1_RX      = LL_GPDMA1_REQUEST_SPI1_RX     , /**< GPDMA1 HW Request is SPI1_RX      */
-    GPDMA_REQ_SPI1_TX      = LL_GPDMA1_REQUEST_SPI1_TX     , /**< GPDMA1 HW Request is SPI1_TX      */
-    GPDMA_REQ_SPI2_RX      = LL_GPDMA1_REQUEST_SPI2_RX     , /**< GPDMA1 HW Request is SPI2_RX      */
-    GPDMA_REQ_SPI2_TX      = LL_GPDMA1_REQUEST_SPI2_TX     , /**< GPDMA1 HW Request is SPI2_TX      */
-    GPDMA_REQ_SPI3_RX      = LL_GPDMA1_REQUEST_SPI3_RX     , /**< GPDMA1 HW Request is SPI3_RX      */
-    GPDMA_REQ_SPI3_TX      = LL_GPDMA1_REQUEST_SPI3_TX     , /**< GPDMA1 HW Request is SPI3_TX      */
-
-    GPDMA_REQ_OCTOSPI1     = LL_GPDMA1_REQUEST_OCTOSPI1    , /**< GPDMA1 HW Request is OCTOSPI1     */
-#if defined(OCTOSPI2)
-    GPDMA_REQ_OCTOSPI2     = LL_GPDMA1_REQUEST_OCTOSPI2    , /**< GPDMA1 HW Request is OCTOSPI2     */
-#endif /* OCTOSPI2 */
-
-#if defined (HSPI1_BASE)
-    GPDMA_REQ_HSPI1        = LL_GPDMA1_REQUEST_HSPI1       , /**< GPDMA1 HW request is HSPI1        */
-#endif /* HSPI1_BASE */
-
-    GPDMA_REQ_USART1_RX    = LL_GPDMA1_REQUEST_USART1_RX   , /**< GPDMA1 HW Request is USART1_RX    */
-    GPDMA_REQ_USART1_TX    = LL_GPDMA1_REQUEST_USART1_TX   , /**< GPDMA1 HW Request is USART1_TX    */
-#if defined(USART2)
-    GPDMA_REQ_USART2_RX    = LL_GPDMA1_REQUEST_USART2_RX   , /**< GPDMA1 HW Request is USART2_RX    */
-    GPDMA_REQ_USART2_TX    = LL_GPDMA1_REQUEST_USART2_TX   , /**< GPDMA1 HW Request is USART2_TX    */
-#endif /* USART2 */
-    GPDMA_REQ_USART3_RX    = LL_GPDMA1_REQUEST_USART3_RX   , /**< GPDMA1 HW Request is USART3_RX    */
-    GPDMA_REQ_USART3_TX    = LL_GPDMA1_REQUEST_USART3_TX   , /**< GPDMA1 HW Request is USART3_TX    */
-    GPDMA_REQ_UART4_RX     = LL_GPDMA1_REQUEST_UART4_RX    , /**< GPDMA1 HW Request is UART4_RX     */
-    GPDMA_REQ_UART4_TX     = LL_GPDMA1_REQUEST_UART4_TX    , /**< GPDMA1 HW Request is UART4_TX     */
-    GPDMA_REQ_UART5_RX     = LL_GPDMA1_REQUEST_UART5_RX    , /**< GPDMA1 HW Request is UART5_RX     */
-    GPDMA_REQ_UART5_TX     = LL_GPDMA1_REQUEST_UART5_TX    , /**< GPDMA1 HW Request is UART5_TX     */
-#if defined (USART6)
-    GPDMA_REQ_USART6_RX    = LL_GPDMA1_REQUEST_USART6_RX   , /**< GPDMA1 HW request is USART6_RX    */
-    GPDMA_REQ_USART6_TX    = LL_GPDMA1_REQUEST_USART6_TX   , /**< GPDMA1 HW request is USART6_TX    */
-#endif /* USART6 */
-
-    GPDMA_REQ_LPUART1_RX   = LL_GPDMA1_REQUEST_LPUART1_RX  , /**< GPDMA1 HW Request is LPUART1_RX   */
-    GPDMA_REQ_LPUART1_TX   = LL_GPDMA1_REQUEST_LPUART1_TX  , /**< GPDMA1 HW Request is LPUART1_TX   */
-
-    GPDMA_REQ_SAI1_A       = LL_GPDMA1_REQUEST_SAI1_A      , /**< GPDMA1 HW Request is SAI1_A       */
-    GPDMA_REQ_SAI1_B       = LL_GPDMA1_REQUEST_SAI1_B      , /**< GPDMA1 HW Request is SAI1_B       */
-#if defined(SAI2)
-    GPDMA_REQ_SAI2_A       = LL_GPDMA1_REQUEST_SAI2_A      , /**< GPDMA1 HW Request is SAI2_A       */
-    GPDMA_REQ_SAI2_B       = LL_GPDMA1_REQUEST_SAI2_B      , /**< GPDMA1 HW Request is SAI2_B       */
-#endif /* SAI2 */
-
-    GPDMA_REQ_DCMI_PSSI    = LL_GPDMA1_REQUEST_DCMI_PSSI   , /**< GPDMA1 HW Request is DCMI_PSSI    */
-    GPDMA_REQ_AES_IN       = LL_GPDMA1_REQUEST_AES_IN      , /**< GPDMA1 HW Request is AES_IN       */
-    GPDMA_REQ_AES_OUT      = LL_GPDMA1_REQUEST_AES_OUT     , /**< GPDMA1 HW Request is AES_OUT      */
-
-    GPDMA_REQ_HASH_IN      = LL_GPDMA1_REQUEST_HASH_IN     , /**< GPDMA1 HW Request is HASH_IN      */
-
-#if defined(UCPD1)
-    GPDMA_REQ_UCPD1_TX     = LL_GPDMA1_REQUEST_UCPD1_TX    , /**< GPDMA1 HW Request is UCPD1_TX     */
-    GPDMA_REQ_UCPD1_RX     = LL_GPDMA1_REQUEST_UCPD1_RX    , /**< GPDMA1 HW Request is UCPD1_RX     */
-#endif /* UCPD1 */
-
-    GPDMA_REQ_MDF1_FLT0    = LL_GPDMA1_REQUEST_MDF1_FLT0   , /**< GPDMA1 HW Request is MDF1_FLT0    */
-    GPDMA_REQ_MDF1_FLT1    = LL_GPDMA1_REQUEST_MDF1_FLT1   , /**< GPDMA1 HW Request is MDF1_FLT1    */
-    GPDMA_REQ_MDF1_FLT2    = LL_GPDMA1_REQUEST_MDF1_FLT2   , /**< GPDMA1 HW Request is MDF1_FLT2    */
-    GPDMA_REQ_MDF1_FLT3    = LL_GPDMA1_REQUEST_MDF1_FLT3   , /**< GPDMA1 HW Request is MDF1_FLT3    */
-    GPDMA_REQ_MDF1_FLT4    = LL_GPDMA1_REQUEST_MDF1_FLT4   , /**< GPDMA1 HW Request is MDF1_FLT4    */
-    GPDMA_REQ_MDF1_FLT5    = LL_GPDMA1_REQUEST_MDF1_FLT5   , /**< GPDMA1 HW Request is MDF1_FLT5    */
-    GPDMA_REQ_ADF1_FLT0    = LL_GPDMA1_REQUEST_ADF1_FLT0   , /**< GPDMA1 HW Request is ADF1_FLT0    */
-
-    GPDMA_REQ_FMAC_READ    = LL_GPDMA1_REQUEST_FMAC_READ   , /**< GPDMA1 HW Request is FMAC_READ    */
-    GPDMA_REQ_FMAC_WRITE   = LL_GPDMA1_REQUEST_FMAC_WRITE  , /**< GPDMA1 HW Request is FMAC_WRITE   */
-
-    GPDMA_REQ_CORDIC_READ  = LL_GPDMA1_REQUEST_CORDIC_READ , /**< GPDMA1 HW Request is CORDIC_READ  */
-    GPDMA_REQ_CORDIC_WRITE = LL_GPDMA1_REQUEST_CORDIC_WRITE, /**< GPDMA1 HW Request is CORDIC_WRITE */
-
-    GPDMA_REQ_SAES_IN      = LL_GPDMA1_REQUEST_SAES_IN     , /**< GPDMA1 HW Request is SAES_IN      */
-    GPDMA_REQ_SAES_OUT     = LL_GPDMA1_REQUEST_SAES_OUT    , /**< GPDMA1 HW Request is SAES_OUT     */
-
-#if defined (JPEG)
-    GPDMA_REQ_JPEG_RX      = LL_GPDMA1_REQUEST_JPEG_RX     , /**< GPDMA1 HW request is JPEG_TX      */
-    GPDMA_REQ_JPEG_TX      = LL_GPDMA1_REQUEST_JPEG_TX     , /**< GPDMA1 HW request is JPEG_RX      */
-#endif /* JPEG */
+    GPDMA_REQ_ADC1         = LL_GPDMA1_REQUEST_ADC1         , /**< GPDMA1 HW request is ADC1         */
+    GPDMA_REQ_ADC4         = LL_GPDMA1_REQUEST_ADC4         , /**< GPDMA1 HW request is ADC4         */
+    GPDMA_REQ_DAC1_CH1     = LL_GPDMA1_REQUEST_DAC1_CH1     , /**< GPDMA1 HW request is DAC1_CH1     */
+    GPDMA_REQ_DAC1_CH2     = LL_GPDMA1_REQUEST_DAC1_CH2     , /**< GPDMA1 HW request is DAC1_CH2     */
+    GPDMA_REQ_TIM6_UP      = LL_GPDMA1_REQUEST_TIM6_UP      , /**< GPDMA1 HW request is TIM6_UP      */
+    GPDMA_REQ_TIM7_UP      = LL_GPDMA1_REQUEST_TIM7_UP      , /**< GPDMA1 HW request is TIM7_UP      */
+    GPDMA_REQ_SPI1_RX      = LL_GPDMA1_REQUEST_SPI1_RX      , /**< GPDMA1 HW request is SPI1_RX      */
+    GPDMA_REQ_SPI1_TX      = LL_GPDMA1_REQUEST_SPI1_TX      , /**< GPDMA1 HW request is SPI1_TX      */
+    GPDMA_REQ_SPI2_RX      = LL_GPDMA1_REQUEST_SPI2_RX      , /**< GPDMA1 HW request is SPI2_RX      */
+    GPDMA_REQ_SPI2_TX      = LL_GPDMA1_REQUEST_SPI2_TX      , /**< GPDMA1 HW request is SPI2_TX      */
+    GPDMA_REQ_SPI3_RX      = LL_GPDMA1_REQUEST_SPI3_RX      , /**< GPDMA1 HW request is SPI3_RX      */
+    GPDMA_REQ_SPI3_TX      = LL_GPDMA1_REQUEST_SPI3_TX      , /**< GPDMA1 HW request is SPI3_TX      */
+    GPDMA_REQ_I2C1_RX      = LL_GPDMA1_REQUEST_I2C1_RX      , /**< GPDMA1 HW request is I2C1_RX      */
+    GPDMA_REQ_I2C1_TX      = LL_GPDMA1_REQUEST_I2C1_TX      , /**< GPDMA1 HW request is I2C1_TX      */
+    GPDMA_REQ_I2C1_EVC     = LL_GPDMA1_REQUEST_I2C1_EVC     , /**< GPDMA1 HW request is I2C1_EVC     */
+    GPDMA_REQ_I2C2_RX      = LL_GPDMA1_REQUEST_I2C2_RX      , /**< GPDMA1 HW request is I2C2_RX      */
+    GPDMA_REQ_I2C2_TX      = LL_GPDMA1_REQUEST_I2C2_TX      , /**< GPDMA1 HW request is I2C2_TX      */
+    GPDMA_REQ_I2C2_EVC     = LL_GPDMA1_REQUEST_I2C2_EVC     , /**< GPDMA1 HW request is I2C2_EVC     */
+    GPDMA_REQ_I2C3_RX      = LL_GPDMA1_REQUEST_I2C3_RX      , /**< GPDMA1 HW request is I2C3_RX      */
+    GPDMA_REQ_I2C3_TX      = LL_GPDMA1_REQUEST_I2C3_TX      , /**< GPDMA1 HW request is I2C3_TX      */
+    GPDMA_REQ_I2C3_EVC     = LL_GPDMA1_REQUEST_I2C3_EVC     , /**< GPDMA1 HW request is I2C3_EVC     */
+    GPDMA_REQ_I2C4_RX      = LL_GPDMA1_REQUEST_I2C4_RX      , /**< GPDMA1 HW request is I2C4_RX      */
+    GPDMA_REQ_I2C4_TX      = LL_GPDMA1_REQUEST_I2C4_TX      , /**< GPDMA1 HW request is I2C4_TX      */
+    GPDMA_REQ_I2C4_EVC     = LL_GPDMA1_REQUEST_I2C4_EVC     , /**< GPDMA1 HW request is I2C4_EVC     */
+    GPDMA_REQ_USART1_RX    = LL_GPDMA1_REQUEST_USART1_RX    , /**< GPDMA1 HW request is USART1_RX    */
+    GPDMA_REQ_USART1_TX    = LL_GPDMA1_REQUEST_USART1_TX    , /**< GPDMA1 HW request is USART1_TX    */
+#if !defined( STM32U535xx ) && \
+    !defined( STM32U545xx )
+    GPDMA_REQ_USART2_RX    = LL_GPDMA1_REQUEST_USART2_RX    , /**< GPDMA1 HW request is USART2_RX    */
+    GPDMA_REQ_USART2_TX    = LL_GPDMA1_REQUEST_USART2_TX    , /**< GPDMA1 HW request is USART2_TX    */
+#endif
+    GPDMA_REQ_USART3_RX    = LL_GPDMA1_REQUEST_USART3_RX    , /**< GPDMA1 HW request is USART3_RX    */
+    GPDMA_REQ_USART3_TX    = LL_GPDMA1_REQUEST_USART3_TX    , /**< GPDMA1 HW request is USART3_TX    */
+    GPDMA_REQ_UART4_RX     = LL_GPDMA1_REQUEST_UART4_RX     , /**< GPDMA1 HW request is UART4_RX     */
+    GPDMA_REQ_UART4_TX     = LL_GPDMA1_REQUEST_UART4_TX     , /**< GPDMA1 HW request is UART4_TX     */
+    GPDMA_REQ_UART5_RX     = LL_GPDMA1_REQUEST_UART5_RX     , /**< GPDMA1 HW request is UART5_RX     */
+    GPDMA_REQ_UART5_TX     = LL_GPDMA1_REQUEST_UART5_TX     , /**< GPDMA1 HW request is UART5_TX     */
+    GPDMA_REQ_LPUART1_RX   = LL_GPDMA1_REQUEST_LPUART1_RX   , /**< GPDMA1 HW request is LPUART1_RX   */
+    GPDMA_REQ_LPUART1_TX   = LL_GPDMA1_REQUEST_LPUART1_TX   , /**< GPDMA1 HW request is LPUART1_TX   */
+    GPDMA_REQ_SAI1_A       = LL_GPDMA1_REQUEST_SAI1_A       , /**< GPDMA1 HW request is SAI1_A       */
+    GPDMA_REQ_SAI1_B       = LL_GPDMA1_REQUEST_SAI1_B       , /**< GPDMA1 HW request is SAI1_B       */
+#if !defined( STM32U535xx ) && \
+    !defined( STM32U545xx )
+    GPDMA_REQ_SAI2_A       = LL_GPDMA1_REQUEST_SAI2_A       , /**< GPDMA1 HW request is SAI2_A       */
+    GPDMA_REQ_SAI2_B       = LL_GPDMA1_REQUEST_SAI2_B       , /**< GPDMA1 HW request is SAI2_B       */
+#endif
+    GPDMA_REQ_OCTOSPI1     = LL_GPDMA1_REQUEST_OCTOSPI1     , /**< GPDMA1 HW request is OCTOSPI1     */
+#if !defined( STM32U535xx ) && \
+    !defined( STM32U545xx )
+    GPDMA_REQ_OCTOSPI2     = LL_GPDMA1_REQUEST_OCTOSPI2     , /**< GPDMA1 HW request is OCTOSPI2     */
+#endif
+    GPDMA_REQ_TIM1_CH1     = LL_GPDMA1_REQUEST_TIM1_CH1     , /**< GPDMA1 HW request is TIM1_CH1     */
+    GPDMA_REQ_TIM1_CH2     = LL_GPDMA1_REQUEST_TIM1_CH2     , /**< GPDMA1 HW request is TIM1_CH2     */
+    GPDMA_REQ_TIM1_CH3     = LL_GPDMA1_REQUEST_TIM1_CH3     , /**< GPDMA1 HW request is TIM1_CH3     */
+    GPDMA_REQ_TIM1_CH4     = LL_GPDMA1_REQUEST_TIM1_CH4     , /**< GPDMA1 HW request is TIM1_CH4     */
+    GPDMA_REQ_TIM1_UP      = LL_GPDMA1_REQUEST_TIM1_UP      , /**< GPDMA1 HW request is TIM1_UP      */
+    GPDMA_REQ_TIM1_TRIG    = LL_GPDMA1_REQUEST_TIM1_TRIG    , /**< GPDMA1 HW request is TIM1_TRIG    */
+    GPDMA_REQ_TIM1_COM     = LL_GPDMA1_REQUEST_TIM1_COM     , /**< GPDMA1 HW request is TIM1_COM     */
+    GPDMA_REQ_TIM8_CH1     = LL_GPDMA1_REQUEST_TIM8_CH1     , /**< GPDMA1 HW request is TIM8_CH1     */
+    GPDMA_REQ_TIM8_CH2     = LL_GPDMA1_REQUEST_TIM8_CH2     , /**< GPDMA1 HW request is TIM8_CH2     */
+    GPDMA_REQ_TIM8_CH3     = LL_GPDMA1_REQUEST_TIM8_CH3     , /**< GPDMA1 HW request is TIM8_CH3     */
+    GPDMA_REQ_TIM8_CH4     = LL_GPDMA1_REQUEST_TIM8_CH4     , /**< GPDMA1 HW request is TIM8_CH4     */
+    GPDMA_REQ_TIM8_UP      = LL_GPDMA1_REQUEST_TIM8_UP      , /**< GPDMA1 HW request is TIM8_UP      */
+    GPDMA_REQ_TIM8_TRIG    = LL_GPDMA1_REQUEST_TIM8_TRIG    , /**< GPDMA1 HW request is TIM8_TRIG    */
+    GPDMA_REQ_TIM8_COM     = LL_GPDMA1_REQUEST_TIM8_COM     , /**< GPDMA1 HW request is TIM8_COM     */
+    GPDMA_REQ_TIM2_CH1     = LL_GPDMA1_REQUEST_TIM2_CH1     , /**< GPDMA1 HW request is TIM2_CH1     */
+    GPDMA_REQ_TIM2_CH2     = LL_GPDMA1_REQUEST_TIM2_CH2     , /**< GPDMA1 HW request is TIM2_CH2     */
+    GPDMA_REQ_TIM2_CH3     = LL_GPDMA1_REQUEST_TIM2_CH3     , /**< GPDMA1 HW request is TIM2_CH3     */
+    GPDMA_REQ_TIM2_CH4     = LL_GPDMA1_REQUEST_TIM2_CH4     , /**< GPDMA1 HW request is TIM2_CH4     */
+    GPDMA_REQ_TIM2_UP      = LL_GPDMA1_REQUEST_TIM2_UP      , /**< GPDMA1 HW request is TIM2_UP      */
+    GPDMA_REQ_TIM3_CH1     = LL_GPDMA1_REQUEST_TIM3_CH1     , /**< GPDMA1 HW request is TIM3_CH1     */
+    GPDMA_REQ_TIM3_CH2     = LL_GPDMA1_REQUEST_TIM3_CH2     , /**< GPDMA1 HW request is TIM3_CH2     */
+    GPDMA_REQ_TIM3_CH3     = LL_GPDMA1_REQUEST_TIM3_CH3     , /**< GPDMA1 HW request is TIM3_CH3     */
+    GPDMA_REQ_TIM3_CH4     = LL_GPDMA1_REQUEST_TIM3_CH4     , /**< GPDMA1 HW request is TIM3_CH4     */
+    GPDMA_REQ_TIM3_UP      = LL_GPDMA1_REQUEST_TIM3_UP      , /**< GPDMA1 HW request is TIM3_UP      */
+    GPDMA_REQ_TIM3_TRIG    = LL_GPDMA1_REQUEST_TIM3_TRIG    , /**< GPDMA1 HW request is TIM3_TRIG    */
+    GPDMA_REQ_TIM4_CH1     = LL_GPDMA1_REQUEST_TIM4_CH1     , /**< GPDMA1 HW request is TIM4_CH1     */
+    GPDMA_REQ_TIM4_CH2     = LL_GPDMA1_REQUEST_TIM4_CH2     , /**< GPDMA1 HW request is TIM4_CH2     */
+    GPDMA_REQ_TIM4_CH3     = LL_GPDMA1_REQUEST_TIM4_CH3     , /**< GPDMA1 HW request is TIM4_CH3     */
+    GPDMA_REQ_TIM4_CH4     = LL_GPDMA1_REQUEST_TIM4_CH4     , /**< GPDMA1 HW request is TIM4_CH4     */
+    GPDMA_REQ_TIM4_UP      = LL_GPDMA1_REQUEST_TIM4_UP      , /**< GPDMA1 HW request is TIM4_UP      */
+    GPDMA_REQ_TIM5_CH1     = LL_GPDMA1_REQUEST_TIM5_CH1     , /**< GPDMA1 HW request is TIM5_CH1     */
+    GPDMA_REQ_TIM5_CH2     = LL_GPDMA1_REQUEST_TIM5_CH2     , /**< GPDMA1 HW request is TIM5_CH2     */
+    GPDMA_REQ_TIM5_CH3     = LL_GPDMA1_REQUEST_TIM5_CH3     , /**< GPDMA1 HW request is TIM5_CH3     */
+    GPDMA_REQ_TIM5_CH4     = LL_GPDMA1_REQUEST_TIM5_CH4     , /**< GPDMA1 HW request is TIM5_CH4     */
+    GPDMA_REQ_TIM5_UP      = LL_GPDMA1_REQUEST_TIM5_UP      , /**< GPDMA1 HW request is TIM5_UP      */
+    GPDMA_REQ_TIM5_TRIG    = LL_GPDMA1_REQUEST_TIM5_TRIG    , /**< GPDMA1 HW request is TIM5_TRIG    */
+    GPDMA_REQ_TIM15_CH1    = LL_GPDMA1_REQUEST_TIM15_CH1    , /**< GPDMA1 HW request is TIM15_CH1    */
+    GPDMA_REQ_TIM15_UP     = LL_GPDMA1_REQUEST_TIM15_UP     , /**< GPDMA1 HW request is TIM15_UP     */
+    GPDMA_REQ_TIM15_TRIG   = LL_GPDMA1_REQUEST_TIM15_TRIG   , /**< GPDMA1 HW request is TIM15_TRIG   */
+    GPDMA_REQ_TIM15_COM    = LL_GPDMA1_REQUEST_TIM15_COM    , /**< GPDMA1 HW request is TIM15_COM    */
+    GPDMA_REQ_TIM16_CH1    = LL_GPDMA1_REQUEST_TIM16_CH1    , /**< GPDMA1 HW request is TIM16_CH1    */
+    GPDMA_REQ_TIM16_UP     = LL_GPDMA1_REQUEST_TIM16_UP     , /**< GPDMA1 HW request is TIM16_UP     */
+    GPDMA_REQ_TIM17_CH1    = LL_GPDMA1_REQUEST_TIM17_CH1    , /**< GPDMA1 HW request is TIM17_CH1    */
+    GPDMA_REQ_TIM17_UP     = LL_GPDMA1_REQUEST_TIM17_UP     , /**< GPDMA1 HW request is TIM17_UP     */
+    GPDMA_REQ_DCMI         = LL_GPDMA1_REQUEST_DCMI         , /**< GPDMA1 HW request is DCMI         */
+    GPDMA_REQ_DCMI_PSSI    = LL_GPDMA1_REQUEST_DCMI_PSSI    , /**< GPDMA1 HW request is DCMI_PSSI    */
+    GPDMA_REQ_AES_IN       = LL_GPDMA1_REQUEST_AES_IN       , /**< GPDMA1 HW request is AES_IN       */
+    GPDMA_REQ_AES_OUT      = LL_GPDMA1_REQUEST_AES_OUT      , /**< GPDMA1 HW request is AES_OUT      */
+    GPDMA_REQ_HASH_IN      = LL_GPDMA1_REQUEST_HASH_IN      , /**< GPDMA1 HW request is HASH_IN      */
+#if !defined( STM32U535xx ) && \
+    !defined( STM32U545xx )
+    GPDMA_REQ_UCPD1_TX     = LL_GPDMA1_REQUEST_UCPD1_TX     , /**< GPDMA1 HW request is UCPD1_TX     */
+    GPDMA_REQ_UCPD1_RX     = LL_GPDMA1_REQUEST_UCPD1_RX     , /**< GPDMA1 HW request is UCPD1_RX     */
+#endif
+    GPDMA_REQ_MDF1_FLT0    = LL_GPDMA1_REQUEST_MDF1_FLT0    , /**< GPDMA1 HW request is MDF1_FLT0    */
+    GPDMA_REQ_MDF1_FLT1    = LL_GPDMA1_REQUEST_MDF1_FLT1    , /**< GPDMA1 HW request is MDF1_FLT1    */
+    GPDMA_REQ_MDF1_FLT2    = LL_GPDMA1_REQUEST_MDF1_FLT2    , /**< GPDMA1 HW request is MDF1_FLT2    */
+    GPDMA_REQ_MDF1_FLT3    = LL_GPDMA1_REQUEST_MDF1_FLT3    , /**< GPDMA1 HW request is MDF1_FLT3    */
+    GPDMA_REQ_MDF1_FLT4    = LL_GPDMA1_REQUEST_MDF1_FLT4    , /**< GPDMA1 HW request is MDF1_FLT4    */
+    GPDMA_REQ_MDF1_FLT5    = LL_GPDMA1_REQUEST_MDF1_FLT5    , /**< GPDMA1 HW request is MDF1_FLT5    */
+    GPDMA_REQ_ADF1_FLT0    = LL_GPDMA1_REQUEST_ADF1_FLT0    , /**< GPDMA1 HW request is ADF1_FLT0    */
+    GPDMA_REQ_FMAC_READ    = LL_GPDMA1_REQUEST_FMAC_READ    , /**< GPDMA1 HW request is FMAC_READ    */
+    GPDMA_REQ_FMAC_WRITE   = LL_GPDMA1_REQUEST_FMAC_WRITE   , /**< GPDMA1 HW request is FMAC_WRITE   */
+    GPDMA_REQ_CORDIC_READ  = LL_GPDMA1_REQUEST_CORDIC_READ  , /**< GPDMA1 HW request is CORDIC_READ  */
+    GPDMA_REQ_CORDIC_WRITE = LL_GPDMA1_REQUEST_CORDIC_WRITE , /**< GPDMA1 HW request is CORDIC_WRITE */
+    GPDMA_REQ_SAES_IN      = LL_GPDMA1_REQUEST_SAES_IN      , /**< GPDMA1 HW request is SAES_IN      */
+    GPDMA_REQ_SAES_OUT     = LL_GPDMA1_REQUEST_SAES_OUT     , /**< GPDMA1 HW request is SAES_OUT     */
+    GPDMA_REQ_LPTIM1_IC1   = LL_GPDMA1_REQUEST_LPTIM1_IC1   , /**< GPDMA1 HW request is LPTIM1_IC1   */
+    GPDMA_REQ_LPTIM1_IC2   = LL_GPDMA1_REQUEST_LPTIM1_IC2   , /**< GPDMA1 HW request is LPTIM1_IC2   */
+    GPDMA_REQ_LPTIM1_UE    = LL_GPDMA1_REQUEST_LPTIM1_UE    , /**< GPDMA1 HW request is LPTIM1_UE    */
+    GPDMA_REQ_LPTIM2_IC1   = LL_GPDMA1_REQUEST_LPTIM2_IC1   , /**< GPDMA1 HW request is LPTIM2_IC1   */
+    GPDMA_REQ_LPTIM2_IC2   = LL_GPDMA1_REQUEST_LPTIM2_IC2   , /**< GPDMA1 HW request is LPTIM2_IC2   */
+    GPDMA_REQ_LPTIM2_UE    = LL_GPDMA1_REQUEST_LPTIM2_UE    , /**< GPDMA1 HW request is LPTIM2_UE    */
+    GPDMA_REQ_LPTIM3_IC1   = LL_GPDMA1_REQUEST_LPTIM3_IC1   , /**< GPDMA1 HW request is LPTIM3_IC1   */
+    GPDMA_REQ_LPTIM3_IC2   = LL_GPDMA1_REQUEST_LPTIM3_IC2   , /**< GPDMA1 HW request is LPTIM3_IC2   */
+    GPDMA_REQ_LPTIM3_UE    = LL_GPDMA1_REQUEST_LPTIM3_UE    , /**< GPDMA1 HW request is LPTIM3_UE    */
+#if !defined( STM32U535xx ) && \
+    !defined( STM32U545xx ) && \
+    !defined( STM32U575xx ) && \
+    !defined( STM32U585xx )
+    GPDMA_REQ_HSPI1        = LL_GPDMA1_REQUEST_HSPI1        , /**< GPDMA1 HW request is HSPI1        */
+    GPDMA_REQ_I2C5_RX      = LL_GPDMA1_REQUEST_I2C5_RX      , /**< GPDMA1 HW request is I2C5_RX      */
+    GPDMA_REQ_I2C5_TX      = LL_GPDMA1_REQUEST_I2C5_TX      , /**< GPDMA1 HW request is I2C5_TX      */
+    GPDMA_REQ_I2C5_EVC     = LL_GPDMA1_REQUEST_I2C5_EVC     , /**< GPDMA1 HW request is I2C5_EVC     */
+    GPDMA_REQ_I2C6_RX      = LL_GPDMA1_REQUEST_I2C6_RX      , /**< GPDMA1 HW request is I2C6_RX      */
+    GPDMA_REQ_I2C6_TX      = LL_GPDMA1_REQUEST_I2C6_TX      , /**< GPDMA1 HW request is I2C6_TX      */
+    GPDMA_REQ_I2C6_EVC     = LL_GPDMA1_REQUEST_I2C6_EVC     , /**< GPDMA1 HW request is I2C6_EVC     */
+    GPDMA_REQ_USART6_RX    = LL_GPDMA1_REQUEST_USART6_RX    , /**< GPDMA1 HW request is USART6_RX    */
+    GPDMA_REQ_USART6_TX    = LL_GPDMA1_REQUEST_USART6_TX    , /**< GPDMA1 HW request is USART6_TX    */
+    GPDMA_REQ_ADC2         = LL_GPDMA1_REQUEST_ADC2         , /**< GPDMA1 HW request is ADC2         */
+#endif
+#if defined( STM32U5F7xx ) || \
+    defined( STM32U5F9xx ) || \
+    defined( STM32U5G7xx ) || \
+    defined( STM32U5G9xx )
+    GPDMA_REQ_JPEG_RX      = LL_GPDMA1_REQUEST_JPEG_RX      , /**< GPDMA1 HW request is JPEG_RX      */
+    GPDMA_REQ_JPEG_TX      = LL_GPDMA1_REQUEST_JPEG_TX      , /**< GPDMA1 HW request is JPEG_TX      */
+#endif
 }   gpdma_PeriphReqId_t;
 
 
@@ -481,93 +476,106 @@ typedef enum
 /** \brief List of possible trigger sources */
 typedef enum gpdma_TrgSrcId_t
 {
-    GPDMA_TRG_EXTI_LINE0      = LL_GPDMA1_TRIGGER_EXTI_LINE0     , /**< GPDMA1 HW Trigger is EXTI_LINE0         */
-    GPDMA_TRG_EXTI_LINE1      = LL_GPDMA1_TRIGGER_EXTI_LINE1     , /**< GPDMA1 HW Trigger is EXTI_LINE1         */
-    GPDMA_TRG_EXTI_LINE2      = LL_GPDMA1_TRIGGER_EXTI_LINE2     , /**< GPDMA1 HW Trigger is EXTI_LINE2         */
-    GPDMA_TRG_EXTI_LINE3      = LL_GPDMA1_TRIGGER_EXTI_LINE3     , /**< GPDMA1 HW Trigger is EXTI_LINE3         */
-    GPDMA_TRG_EXTI_LINE4      = LL_GPDMA1_TRIGGER_EXTI_LINE4     , /**< GPDMA1 HW Trigger is EXTI_LINE4         */
-    GPDMA_TRG_EXTI_LINE5      = LL_GPDMA1_TRIGGER_EXTI_LINE5     , /**< GPDMA1 HW Trigger is EXTI_LINE5         */
-    GPDMA_TRG_EXTI_LINE6      = LL_GPDMA1_TRIGGER_EXTI_LINE6     , /**< GPDMA1 HW Trigger is EXTI_LINE6         */
-    GPDMA_TRG_EXTI_LINE7      = LL_GPDMA1_TRIGGER_EXTI_LINE7     , /**< GPDMA1 HW Trigger is EXTI_LINE7         */
-    GPDMA_TRG_TAMP_TRG1       = LL_GPDMA1_TRIGGER_TAMP_TRG1      , /**< GPDMA1 HW Trigger is TAMP_TRG1          */
-    GPDMA_TRG_TAMP_TRG2       = LL_GPDMA1_TRIGGER_TAMP_TRG2      , /**< GPDMA1 HW Trigger is TAMP_TRG2          */
-    GPDMA_TRG_TAMP_TRG3       = LL_GPDMA1_TRIGGER_TAMP_TRG3      , /**< GPDMA1 HW Trigger is TAMP_TRG3          */
-    GPDMA_TRG_LPTIM1_CH1      = LL_GPDMA1_TRIGGER_LPTIM1_CH1     , /**< GPDMA1 HW Trigger is LPTIM1_CH1         */
-    GPDMA_TRG_LPTIM1_CH2      = LL_GPDMA1_TRIGGER_LPTIM1_CH2     , /**< GPDMA1 HW Trigger is LPTIM1_CH2         */
-    GPDMA_TRG_LPTIM2_CH1      = LL_GPDMA1_TRIGGER_LPTIM2_CH1     , /**< GPDMA1 HW Trigger is LPTIM2_CH1         */
-    GPDMA_TRG_LPTIM2_CH2      = LL_GPDMA1_TRIGGER_LPTIM2_CH2     , /**< GPDMA1 HW Trigger is LPTIM2_CH2         */
-    GPDMA_TRG_LPTIM4_OUT      = LL_GPDMA1_TRIGGER_LPTIM4_OUT     , /**< GPDMA1 HW Trigger is LPTIM4_OUT         */
-    GPDMA_TRG_COMP1_OUT       = LL_GPDMA1_TRIGGER_COMP1_OUT      , /**< GPDMA1 HW Trigger is COMP1_OUT          */
-#if defined(COMP2)
-    GPDMA_TRG_COMP2_OUT       = LL_GPDMA1_TRIGGER_COMP2_OUT      , /**< GPDMA1 HW Trigger is COMP2_OUT          */
-#endif /* COMP2 */
-    GPDMA_TRG_RTC_ALRA_TRG    = LL_GPDMA1_TRIGGER_RTC_ALRA_TRG   , /**< GPDMA1 HW Trigger is RTC_ALRA_TRG       */
-    GPDMA_TRG_RTC_ALRB_TRG    = LL_GPDMA1_TRIGGER_RTC_ALRB_TRG   , /**< GPDMA1 HW Trigger is RTC_ALRB_TRG       */
-    GPDMA_TRG_RTC_WUT_TRG     = LL_GPDMA1_TRIGGER_RTC_WUT_TRG    , /**< GPDMA1 HW Trigger is RTC_WUT_TRG        */
-    GPDMA_TRG_GPDMA1_CH0_TCF  = LL_GPDMA1_TRIGGER_GPDMA1_CH0_TCF , /**< GPDMA1 HW Trigger is GPDMA1_CH0_TCF     */
-    GPDMA_TRG_GPDMA1_CH1_TCF  = LL_GPDMA1_TRIGGER_GPDMA1_CH1_TCF , /**< GPDMA1 HW Trigger is GPDMA1_CH1_TCF     */
-    GPDMA_TRG_GPDMA1_CH2_TCF  = LL_GPDMA1_TRIGGER_GPDMA1_CH2_TCF , /**< GPDMA1 HW Trigger is GPDMA1_CH2_TCF     */
-    GPDMA_TRG_GPDMA1_CH3_TCF  = LL_GPDMA1_TRIGGER_GPDMA1_CH3_TCF , /**< GPDMA1 HW Trigger is GPDMA1_CH3_TCF     */
-    GPDMA_TRG_GPDMA1_CH4_TCF  = LL_GPDMA1_TRIGGER_GPDMA1_CH4_TCF , /**< GPDMA1 HW Trigger is GPDMA1_CH4_TCF     */
-    GPDMA_TRG_GPDMA1_CH5_TCF  = LL_GPDMA1_TRIGGER_GPDMA1_CH5_TCF , /**< GPDMA1 HW Trigger is GPDMA1_CH5_TCF     */
-    GPDMA_TRG_GPDMA1_CH6_TCF  = LL_GPDMA1_TRIGGER_GPDMA1_CH6_TCF , /**< GPDMA1 HW Trigger is GPDMA1_CH6_TCF     */
-    GPDMA_TRG_GPDMA1_CH7_TCF  = LL_GPDMA1_TRIGGER_GPDMA1_CH7_TCF , /**< GPDMA1 HW Trigger is GPDMA1_CH7_TCF     */
-    GPDMA_TRG_GPDMA1_CH8_TCF  = LL_GPDMA1_TRIGGER_GPDMA1_CH8_TCF , /**< GPDMA1 HW Trigger is GPDMA1_CH8_TCF     */
-    GPDMA_TRG_GPDMA1_CH9_TCF  = LL_GPDMA1_TRIGGER_GPDMA1_CH9_TCF , /**< GPDMA1 HW Trigger is GPDMA1_CH9_TCF     */
-    GPDMA_TRG_GPDMA1_CH10_TCF = LL_GPDMA1_TRIGGER_GPDMA1_CH10_TCF, /**< GPDMA1 HW Trigger is GPDMA1_CH10_TCF    */
-    GPDMA_TRG_GPDMA1_CH11_TCF = LL_GPDMA1_TRIGGER_GPDMA1_CH11_TCF, /**< GPDMA1 HW Trigger is GPDMA1_CH11_TCF    */
-    GPDMA_TRG_GPDMA1_CH12_TCF = LL_GPDMA1_TRIGGER_GPDMA1_CH12_TCF, /**< GPDMA1 HW Trigger is GPDMA1_CH12_TCF    */
-    GPDMA_TRG_GPDMA1_CH13_TCF = LL_GPDMA1_TRIGGER_GPDMA1_CH13_TCF, /**< GPDMA1 HW Trigger is GPDMA1_CH13_TCF    */
-    GPDMA_TRG_GPDMA1_CH14_TCF = LL_GPDMA1_TRIGGER_GPDMA1_CH14_TCF, /**< GPDMA1 HW Trigger is GPDMA1_CH14_TCF    */
-    GPDMA_TRG_GPDMA1_CH15_TCF = LL_GPDMA1_TRIGGER_GPDMA1_CH15_TCF, /**< GPDMA1 HW Trigger is GPDMA1_CH15_TCF    */
-    GPDMA_TRG_LPDMA1_CH0_TCF  = LL_GPDMA1_TRIGGER_LPDMA1_CH0_TCF , /**< GPDMA1 HW Trigger is LPDMA1_CH0_TCF     */
-    GPDMA_TRG_LPDMA1_CH1_TCF  = LL_GPDMA1_TRIGGER_LPDMA1_CH1_TCF , /**< GPDMA1 HW Trigger is LPDMA1_CH1_TCF     */
-    GPDMA_TRG_LPDMA1_CH2_TCF  = LL_GPDMA1_TRIGGER_LPDMA1_CH2_TCF , /**< GPDMA1 HW Trigger is LPDMA1_CH2_TCF     */
-    GPDMA_TRG_LPDMA1_CH3_TCF  = LL_GPDMA1_TRIGGER_LPDMA1_CH3_TCF , /**< GPDMA1 HW Trigger is LPDMA1_CH3_TCF     */
-    GPDMA_TRG_TIM2_TRGO       = LL_GPDMA1_TRIGGER_TIM2_TRGO      , /**< GPDMA1 HW Trigger is TIM2_TRGO          */
-    GPDMA_TRG_TIM15_TRGO      = LL_GPDMA1_TRIGGER_TIM15_TRGO     , /**< GPDMA1 HW Trigger is TIM15_TRGO         */
-    GPDMA_TRG_ADC4_AWD1       = LL_GPDMA1_TRIGGER_ADC4_AWD1      , /**< GPDMA1 HW Trigger is ADC4_AWD1          */
-    GPDMA_TRG_ADC1_AWD1       = LL_GPDMA1_TRIGGER_ADC1_AWD1      , /**< GPDMA1 HW Trigger is ADC1_AWD1          */
-#if defined (TIM3_TRGO_TRIGGER_SUPPORT)
-    GPDMA_TRG_TIM3_TRGO       = LL_GPDMA1_TRIGGER_TIM3_TRGO      , /**< GPDMA1 HW Trigger signal is TIM3_TRGO   */
-#endif /* TIM3_TRGO_TRIGGER_SUPPORT */
-#if defined (TIM4_TRGO_TRIGGER_SUPPORT)
-    GPDMA_TRG_TIM4_TRGO       = LL_GPDMA1_TRIGGER_TIM4_TRGO      , /**< GPDMA1 HW Trigger signal is TIM4_TRGO   */
-#endif /* TIM4_TRGO_TRIGGER_SUPPORT */
-#if defined (TIM5_TRGO_TRIGGER_SUPPORT)
-    GPDMA_TRG_TIM5_TRGO       = LL_GPDMA1_TRIGGER_TIM5_TRGO      , /**< GPDMA1 HW Trigger signal is TIM5_TRGO   */
-#endif /* TIM5_TRGO_TRIGGER_SUPPORT */
-#if defined (LTDC)
-    GPDMA_TRG_LTDC_LI         = LL_GPDMA1_TRIGGER_LTDC_LI        , /**< GPDMA1 HW Trigger signal is LTDC_LI     */
-#endif /* LTDC */
-#if defined (DSI)
-    GPDMA_TRG_DSI_TE          = LL_GPDMA1_TRIGGER_DSI_TE         , /**< GPDMA1 HW Trigger signal is DSI_TE      */
-    GPDMA_TRG_DSI_ER          = LL_GPDMA1_TRIGGER_DSI_ER         , /**< GPDMA1 HW Trigger signal is DSI_ER      */
-#endif /* DSI */
-#if defined (DMA2D)
-    GPDMA_TRG_DMA2D_TC        = LL_GPDMA1_TRIGGER_DMA2D_TC       , /**< GPDMA1 HW Trigger signal is DMA2D_TC    */
-    GPDMA_TRG_DMA2D_CTC       = LL_GPDMA1_TRIGGER_DMA2D_CTC      , /**< GPDMA1 HW Trigger signal is DMA2D_CTC   */
-    GPDMA_TRG_DMA2D_TW        = LL_GPDMA1_TRIGGER_DMA2D_TW       , /**< GPDMA1 HW Trigger signal is DMA2D_TW    */
-#endif /* DMA2D */
-#if defined (GPU2D)
-    GPDMA_TRG_GPU2D_FLAG0     = LL_GPDMA1_TRIGGER_GPU2D_FLAG0    , /**< GPDMA1 HW Trigger signal is GPU2D_FLAG0 */
-    GPDMA_TRG_GPU2D_FLAG1     = LL_GPDMA1_TRIGGER_GPU2D_FLAG1    , /**< GPDMA1 HW Trigger signal is GPU2D_FLAG1 */
-    GPDMA_TRG_GPU2D_FLAG2     = LL_GPDMA1_TRIGGER_GPU2D_FLAG2    , /**< GPDMA1 HW Trigger signal is GPU2D_FLAG2 */
-    GPDMA_TRG_GPU2D_FLAG3     = LL_GPDMA1_TRIGGER_GPU2D_FLAG3    , /**< GPDMA1 HW Trigger signal is GPU2D_FLAG3 */
-#endif /* GPU2D */
-#if defined (GFXTIM)
-    GPDMA_TRG_GFXTIM_EVT3     = LL_GPDMA1_TRIGGER_GFXTIM_EVT3    , /**< GPDMA1 HW Trigger signal is GFXTIM_EVT3 */
-    GPDMA_TRG_GFXTIM_EVT2     = LL_GPDMA1_TRIGGER_GFXTIM_EVT2    , /**< GPDMA1 HW Trigger signal is GFXTIM_EVT2 */
-    GPDMA_TRG_GFXTIM_EVT1     = LL_GPDMA1_TRIGGER_GFXTIM_EVT1    , /**< GPDMA1 HW Trigger signal is GFXTIM_EVT1 */
-    GPDMA_TRG_GFXTIM_EVT0     = LL_GPDMA1_TRIGGER_GFXTIM_EVT0    , /**< GPDMA1 HW Trigger signal is GFXTIM_EVT0 */
-#endif /* GFXTIM */
-#if defined (JPEG)
-    GPDMA_TRG_JPEG_EOC        = LL_GPDMA1_TRIGGER_JPEG_EOC       , /**< GPDMA1 HW Trigger signal is JPEG_EOC    */
-    GPDMA_TRG_JPEG_IFNF       = LL_GPDMA1_TRIGGER_JPEG_IFNF      , /**< GPDMA1 HW Trigger signal is JPEG_IFNF   */
-    GPDMA_TRG_JPEG_IFT        = LL_GPDMA1_TRIGGER_JPEG_IFT       , /**< GPDMA1 HW Trigger signal is JPEG_IFT    */
-    GPDMA_TRG_JPEG_OFNE       = LL_GPDMA1_TRIGGER_JPEG_OFNE      , /**< GPDMA1 HW Trigger signal is JPEG_OFNE   */
-    GPDMA_TRG_JPEG_OFT        = LL_GPDMA1_TRIGGER_JPEG_OFT       , /**< GPDMA1 HW Trigger signal is JPEG_OFT    */
-#endif /* JPEG */
+    GPDMA_TRG_EXTI_LINE0      = LL_GPDMA1_TRIGGER_EXTI_LINE0      , /**< GPDMA1 HW Trigger signal is EXTI_LINE0      */
+    GPDMA_TRG_EXTI_LINE1      = LL_GPDMA1_TRIGGER_EXTI_LINE1      , /**< GPDMA1 HW Trigger signal is EXTI_LINE1      */
+    GPDMA_TRG_EXTI_LINE2      = LL_GPDMA1_TRIGGER_EXTI_LINE2      , /**< GPDMA1 HW Trigger signal is EXTI_LINE2      */
+    GPDMA_TRG_EXTI_LINE3      = LL_GPDMA1_TRIGGER_EXTI_LINE3      , /**< GPDMA1 HW Trigger signal is EXTI_LINE3      */
+    GPDMA_TRG_EXTI_LINE4      = LL_GPDMA1_TRIGGER_EXTI_LINE4      , /**< GPDMA1 HW Trigger signal is EXTI_LINE4      */
+    GPDMA_TRG_EXTI_LINE5      = LL_GPDMA1_TRIGGER_EXTI_LINE5      , /**< GPDMA1 HW Trigger signal is EXTI_LINE5      */
+    GPDMA_TRG_EXTI_LINE6      = LL_GPDMA1_TRIGGER_EXTI_LINE6      , /**< GPDMA1 HW Trigger signal is EXTI_LINE6      */
+    GPDMA_TRG_EXTI_LINE7      = LL_GPDMA1_TRIGGER_EXTI_LINE7      , /**< GPDMA1 HW Trigger signal is EXTI_LINE7      */
+    GPDMA_TRG_TAMP_TRG1       = LL_GPDMA1_TRIGGER_TAMP_TRG1       , /**< GPDMA1 HW Trigger signal is TAMP_TRG1       */
+    GPDMA_TRG_TAMP_TRG2       = LL_GPDMA1_TRIGGER_TAMP_TRG2       , /**< GPDMA1 HW Trigger signal is TAMP_TRG2       */
+    GPDMA_TRG_TAMP_TRG3       = LL_GPDMA1_TRIGGER_TAMP_TRG3       , /**< GPDMA1 HW Trigger signal is TAMP_TRG3       */
+    GPDMA_TRG_LPTIM1_CH1      = LL_GPDMA1_TRIGGER_LPTIM1_CH1      , /**< GPDMA1 HW Trigger signal is LPTIM1_CH1      */
+    GPDMA_TRG_LPTIM1_CH2      = LL_GPDMA1_TRIGGER_LPTIM1_CH2      , /**< GPDMA1 HW Trigger signal is LPTIM1_CH2      */
+    GPDMA_TRG_LPTIM2_CH1      = LL_GPDMA1_TRIGGER_LPTIM2_CH1      , /**< GPDMA1 HW Trigger signal is LPTIM2_CH1      */
+    GPDMA_TRG_LPTIM2_CH2      = LL_GPDMA1_TRIGGER_LPTIM2_CH2      , /**< GPDMA1 HW Trigger signal is LPTIM2_CH2      */
+    GPDMA_TRG_LPTIM4_OUT      = LL_GPDMA1_TRIGGER_LPTIM4_OUT      , /**< GPDMA1 HW Trigger signal is LPTIM4_OUT      */
+    GPDMA_TRG_COMP1_OUT       = LL_GPDMA1_TRIGGER_COMP1_OUT       , /**< GPDMA1 HW Trigger signal is COMP1_OUT       */
+#if !defined( STM32U535xx ) && \
+    !defined( STM32U545xx )
+    GPDMA_TRG_COMP2_OUT       = LL_GPDMA1_TRIGGER_COMP2_OUT       , /**< GPDMA1 HW Trigger signal is COMP2_OUT       */
+#endif
+    GPDMA_TRG_RTC_ALRA_TRG    = LL_GPDMA1_TRIGGER_RTC_ALRA_TRG    , /**< GPDMA1 HW Trigger signal is RTC_ALRA_TRG    */
+    GPDMA_TRG_RTC_ALRB_TRG    = LL_GPDMA1_TRIGGER_RTC_ALRB_TRG    , /**< GPDMA1 HW Trigger signal is RTC_ALRB_TRG    */
+    GPDMA_TRG_RTC_WUT_TRG     = LL_GPDMA1_TRIGGER_RTC_WUT_TRG     , /**< GPDMA1 HW Trigger signal is RTC_WUT_TRG     */
+    GPDMA_TRG_GPDMA1_CH0_TCF  = LL_GPDMA1_TRIGGER_GPDMA1_CH0_TCF  , /**< GPDMA1 HW Trigger signal is GPDMA1_CH0_TCF  */
+    GPDMA_TRG_GPDMA1_CH1_TCF  = LL_GPDMA1_TRIGGER_GPDMA1_CH1_TCF  , /**< GPDMA1 HW Trigger signal is GPDMA1_CH1_TCF  */
+    GPDMA_TRG_GPDMA1_CH2_TCF  = LL_GPDMA1_TRIGGER_GPDMA1_CH2_TCF  , /**< GPDMA1 HW Trigger signal is GPDMA1_CH2_TCF  */
+    GPDMA_TRG_GPDMA1_CH3_TCF  = LL_GPDMA1_TRIGGER_GPDMA1_CH3_TCF  , /**< GPDMA1 HW Trigger signal is GPDMA1_CH3_TCF  */
+    GPDMA_TRG_GPDMA1_CH4_TCF  = LL_GPDMA1_TRIGGER_GPDMA1_CH4_TCF  , /**< GPDMA1 HW Trigger signal is GPDMA1_CH4_TCF  */
+    GPDMA_TRG_GPDMA1_CH5_TCF  = LL_GPDMA1_TRIGGER_GPDMA1_CH5_TCF  , /**< GPDMA1 HW Trigger signal is GPDMA1_CH5_TCF  */
+    GPDMA_TRG_GPDMA1_CH6_TCF  = LL_GPDMA1_TRIGGER_GPDMA1_CH6_TCF  , /**< GPDMA1 HW Trigger signal is GPDMA1_CH6_TCF  */
+    GPDMA_TRG_GPDMA1_CH7_TCF  = LL_GPDMA1_TRIGGER_GPDMA1_CH7_TCF  , /**< GPDMA1 HW Trigger signal is GPDMA1_CH7_TCF  */
+    GPDMA_TRG_GPDMA1_CH8_TCF  = LL_GPDMA1_TRIGGER_GPDMA1_CH8_TCF  , /**< GPDMA1 HW Trigger signal is GPDMA1_CH8_TCF  */
+    GPDMA_TRG_GPDMA1_CH9_TCF  = LL_GPDMA1_TRIGGER_GPDMA1_CH9_TCF  , /**< GPDMA1 HW Trigger signal is GPDMA1_CH9_TCF  */
+    GPDMA_TRG_GPDMA1_CH10_TCF = LL_GPDMA1_TRIGGER_GPDMA1_CH10_TCF , /**< GPDMA1 HW Trigger signal is GPDMA1_CH10_TCF */
+    GPDMA_TRG_GPDMA1_CH11_TCF = LL_GPDMA1_TRIGGER_GPDMA1_CH11_TCF , /**< GPDMA1 HW Trigger signal is GPDMA1_CH11_TCF */
+    GPDMA_TRG_GPDMA1_CH12_TCF = LL_GPDMA1_TRIGGER_GPDMA1_CH12_TCF , /**< GPDMA1 HW Trigger signal is GPDMA1_CH12_TCF */
+    GPDMA_TRG_GPDMA1_CH13_TCF = LL_GPDMA1_TRIGGER_GPDMA1_CH13_TCF , /**< GPDMA1 HW Trigger signal is GPDMA1_CH13_TCF */
+    GPDMA_TRG_GPDMA1_CH14_TCF = LL_GPDMA1_TRIGGER_GPDMA1_CH14_TCF , /**< GPDMA1 HW Trigger signal is GPDMA1_CH14_TCF */
+    GPDMA_TRG_GPDMA1_CH15_TCF = LL_GPDMA1_TRIGGER_GPDMA1_CH15_TCF , /**< GPDMA1 HW Trigger signal is GPDMA1_CH15_TCF */
+    GPDMA_TRG_LPDMA1_CH0_TCF  = LL_GPDMA1_TRIGGER_LPDMA1_CH0_TCF  , /**< GPDMA1 HW Trigger signal is LPDMA1_CH0_TCF  */
+    GPDMA_TRG_LPDMA1_CH1_TCF  = LL_GPDMA1_TRIGGER_LPDMA1_CH1_TCF  , /**< GPDMA1 HW Trigger signal is LPDMA1_CH1_TCF  */
+    GPDMA_TRG_LPDMA1_CH2_TCF  = LL_GPDMA1_TRIGGER_LPDMA1_CH2_TCF  , /**< GPDMA1 HW Trigger signal is LPDMA1_CH2_TCF  */
+    GPDMA_TRG_LPDMA1_CH3_TCF  = LL_GPDMA1_TRIGGER_LPDMA1_CH3_TCF  , /**< GPDMA1 HW Trigger signal is LPDMA1_CH3_TCF  */
+    GPDMA_TRG_TIM2_TRGO       = LL_GPDMA1_TRIGGER_TIM2_TRGO       , /**< GPDMA1 HW Trigger signal is TIM2_TRGO       */
+    GPDMA_TRG_TIM15_TRGO      = LL_GPDMA1_TRIGGER_TIM15_TRGO      , /**< GPDMA1 HW Trigger signal is TIM15_TRGO      */
+    GPDMA_TRG_ADC4_AWD1       = LL_GPDMA1_TRIGGER_ADC4_AWD1       , /**< GPDMA1 HW Trigger signal is ADC4_AWD1       */
+    GPDMA_TRG_ADC1_AWD1       = LL_GPDMA1_TRIGGER_ADC1_AWD1       , /**< GPDMA1 HW Trigger signal is ADC1_AWD1       */
+#if !defined( STM32U575xx ) && \
+    !defined( STM32U585xx )
+    GPDMA_TRG_TIM3_TRGO       = LL_GPDMA1_TRIGGER_TIM3_TRGO       , /**< GPDMA1 HW Trigger signal is TIM3_TRGO       */
+    GPDMA_TRG_TIM4_TRGO       = LL_GPDMA1_TRIGGER_TIM4_TRGO       , /**< GPDMA1 HW Trigger signal is TIM4_TRGO       */
+    GPDMA_TRG_TIM5_TRGO       = LL_GPDMA1_TRIGGER_TIM5_TRGO       , /**< GPDMA1 HW Trigger signal is TIM5_TRGO       */
+#endif
+#if defined( STM32U599xx ) || \
+    defined( STM32U5A9xx ) || \
+    defined( STM32U5F7xx ) || \
+    defined( STM32U5F9xx ) || \
+    defined( STM32U5G7xx ) || \
+    defined( STM32U5G9xx )
+    GPDMA_TRG_LTDC_LI         = LL_GPDMA1_TRIGGER_LTDC_LI         , /**< GPDMA1 HW Trigger signal is LTDC_LI         */
+#endif
+#if defined( STM32U599xx ) || \
+    defined( STM32U5A9xx ) || \
+    defined( STM32U5F9xx ) || \
+    defined( STM32U5G9xx )
+    GPDMA_TRG_DSI_TE          = LL_GPDMA1_TRIGGER_DSI_TE          , /**< GPDMA1 HW Trigger signal is DSI_TE          */
+    GPDMA_TRG_DSI_ER          = LL_GPDMA1_TRIGGER_DSI_ER          , /**< GPDMA1 HW Trigger signal is DSI_ER          */
+#endif
+#if !defined( STM32U535xx ) && \
+    !defined( STM32U545xx )
+    GPDMA_TRG_DMA2D_TC        = LL_GPDMA1_TRIGGER_DMA2D_TC        , /**< GPDMA1 HW Trigger signal is DMA2D_TC        */
+    GPDMA_TRG_DMA2D_CTC       = LL_GPDMA1_TRIGGER_DMA2D_CTC       , /**< GPDMA1 HW Trigger signal is DMA2D_CTC       */
+    GPDMA_TRG_DMA2D_TW        = LL_GPDMA1_TRIGGER_DMA2D_TW        , /**< GPDMA1 HW Trigger signal is DMA2D_TW        */
+#endif
+#if defined( STM32U599xx ) || \
+    defined( STM32U5A9xx ) || \
+    defined( STM32U5F7xx ) || \
+    defined( STM32U5F9xx ) || \
+    defined( STM32U5G7xx ) || \
+    defined( STM32U5G9xx )
+    GPDMA_TRG_GPU2D_FLAG0     = LL_GPDMA1_TRIGGER_GPU2D_FLAG0     , /**< GPDMA1 HW Trigger signal is GPU2D_FLAG0     */
+    GPDMA_TRG_GPU2D_FLAG1     = LL_GPDMA1_TRIGGER_GPU2D_FLAG1     , /**< GPDMA1 HW Trigger signal is GPU2D_FLAG1     */
+    GPDMA_TRG_GPU2D_FLAG2     = LL_GPDMA1_TRIGGER_GPU2D_FLAG2     , /**< GPDMA1 HW Trigger signal is GPU2D_FLAG2     */
+    GPDMA_TRG_GPU2D_FLAG3     = LL_GPDMA1_TRIGGER_GPU2D_FLAG3     , /**< GPDMA1 HW Trigger signal is GPU2D_FLAG3     */
+#endif
+#if defined( STM32U5F7xx ) || \
+    defined( STM32U5F9xx ) || \
+    defined( STM32U5G7xx ) || \
+    defined( STM32U5G9xx )
+    GPDMA_TRG_GFXTIM_EVT3     = LL_GPDMA1_TRIGGER_GFXTIM_EVT3     , /**< GPDMA1 HW Trigger signal is GFXTIM_EVT3     */
+    GPDMA_TRG_GFXTIM_EVT2     = LL_GPDMA1_TRIGGER_GFXTIM_EVT2     , /**< GPDMA1 HW Trigger signal is GFXTIM_EVT2     */
+    GPDMA_TRG_GFXTIM_EVT1     = LL_GPDMA1_TRIGGER_GFXTIM_EVT1     , /**< GPDMA1 HW Trigger signal is GFXTIM_EVT1     */
+    GPDMA_TRG_GFXTIM_EVT0     = LL_GPDMA1_TRIGGER_GFXTIM_EVT0     , /**< GPDMA1 HW Trigger signal is GFXTIM_EVT0     */
+    GPDMA_TRG_JPEG_EOC        = LL_GPDMA1_TRIGGER_JPEG_EOC        , /**< GPDMA1 HW Trigger signal is JPEG_EOC        */
+    GPDMA_TRG_JPEG_IFNF       = LL_GPDMA1_TRIGGER_JPEG_IFNF       , /**< GPDMA1 HW Trigger signal is JPEG_IFNF       */
+    GPDMA_TRG_JPEG_IFT        = LL_GPDMA1_TRIGGER_JPEG_IFT        , /**< GPDMA1 HW Trigger signal is JPEG_IFT        */
+    GPDMA_TRG_JPEG_OFNE       = LL_GPDMA1_TRIGGER_JPEG_OFNE       , /**< GPDMA1 HW Trigger signal is JPEG_OFNE       */
+    GPDMA_TRG_JPEG_OFT        = LL_GPDMA1_TRIGGER_JPEG_OFT        , /**< GPDMA1 HW Trigger signal is JPEG_OFT        */
+#endif
 }   gpdma_TrgSrcId_t;
 
 

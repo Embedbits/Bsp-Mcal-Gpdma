@@ -4,6 +4,15 @@
 
 The `Gpdma` (General-Purpose DMA) module in MCAL provides an abstraction for configuring and managing DMA transfers on STM32 microcontrollers. It exposes public types and configuration structures for flexible DMA usage in embedded applications.
 
+## STM32U5 Specifics
+
+- **GPDMA1** with 16 channels (`GPDMA_CHANNEL_0` - `GPDMA_CHANNEL_15`): channels 0 - 11 linear addressing
+  (FIFO 8 bytes), channels 12 - 15 linear or 2D addressing (FIFO 32 bytes, block repetition). STM32U5 has
+  no GPDMA2 (`GPDMA_PERIPH_1` only), the low-power DMA (LPDMA1) is not handled by this module.
+- Hardware requests (`gpdma_PeriphReqId_t`) and triggers (`gpdma_TrgSrcId_t`) are generated from the
+  STM32U5 LL driver (`LL_GPDMA1_REQUEST_x`, `LL_GPDMA1_TRIGGER_x`), entries not available on a device
+  line are excluded by preprocessor conditions.
+
 ## File Structure
 
 - `Gpdma_Port.h` — Declares the public API functions for the Gpdma module.

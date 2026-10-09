@@ -26,13 +26,13 @@ set( Gpdma_SourceFiles
 # List of public header files provided by the current library
 set( Gpdma_PublicHeaders 
     Gpdma_Types.h
-    Gpdma_Port.h 
+    Gpdma_Port.h
 )
 
 
 # List of dependent libraries that are publicly used by the current library
 set( Gpdma_PublicDependentLibs
-     
+    
 )
 
 
@@ -82,10 +82,9 @@ target_include_directories( Gpdma_Lib
     PUBLIC
         $<BUILD_INTERFACE:${PUBLIC_HEADERS_DIR}>
         $<INSTALL_INTERFACE:include>
-        Gpdma_PublicIncludeDirs
+        ${Gpdma_PublicIncludeDirs}
     PRIVATE
-        ${Gpdma_IncludeDirs}
-        Gpdma_PrivateIncludeDirs
+        ${Gpdma_PrivateIncludeDirs}
 )
 
 
@@ -95,4 +94,14 @@ message(STATUS "Gpdma_Lib library created")
 #========================= Documentation configuration ========================#
 if(DOXYGEN_AVAILABLE STREQUAL "ON")
     Doxygen_AddPath("${CMAKE_CURRENT_SOURCE_DIR}/")
+endif()
+
+#========================= Unit tests configuration ===========================#
+if(UNIT_TESTING_AVAILABLE STREQUAL "ON")
+    UnitTesting_AddPath("${CMAKE_CURRENT_SOURCE_DIR}/Tests/UnitTests")
+endif()
+
+#===================== Integration tests configuration ========================#
+if(INTEGRATION_TESTING_AVAILABLE STREQUAL "ON")
+    IntegrationTesting_AddPath("${CMAKE_CURRENT_SOURCE_DIR}/Tests/IntegrationTests")
 endif()
