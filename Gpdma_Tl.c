@@ -2435,9 +2435,9 @@ gpdma_RequestState_t Gpdma_Get_XferList_DstOffset2D( volatile gpdma_XferList_t *
     {
         if( GPDMA_CHANNEL_LINEAR_2D == channelType )
         {
-            *blockOffset = transferList->Register[ GPDMA_TRANSFER_LIST_2D_MODE_REG_TR3 ] & DMA_CTR3_DAO_Msk;
+            *blockOffset = ( transferList->Register[ GPDMA_TRANSFER_LIST_2D_MODE_REG_TR3 ] & DMA_CTR3_DAO_Msk ) >> DMA_CTR3_DAO_Pos;
 
-            *repBlockOffset = transferList->Register[ GPDMA_TRANSFER_LIST_2D_MODE_REG_BR2 ] & DMA_CBR2_BRDAO;
+            *repBlockOffset = ( transferList->Register[ GPDMA_TRANSFER_LIST_2D_MODE_REG_BR2 ] & DMA_CBR2_BRDAO ) >> DMA_CBR2_BRDAO_Pos;
         }
         else
         {
@@ -2521,9 +2521,9 @@ gpdma_RequestState_t Gpdma_Get_XferList_SrcOffset2D( volatile gpdma_XferList_t *
     {
         if( GPDMA_CHANNEL_LINEAR_2D == channelType )
         {
-            *blockOffset = transferList->Register[ GPDMA_TRANSFER_LIST_2D_MODE_REG_TR3 ] & DMA_CTR3_SAO_Msk;
+            *blockOffset = ( transferList->Register[ GPDMA_TRANSFER_LIST_2D_MODE_REG_TR3 ] & DMA_CTR3_SAO_Msk ) >> DMA_CTR3_SAO_Pos;
 
-            *repBlockOffset = transferList->Register[ GPDMA_TRANSFER_LIST_2D_MODE_REG_BR2 ] & DMA_CBR2_BRSAO;
+            *repBlockOffset = ( transferList->Register[ GPDMA_TRANSFER_LIST_2D_MODE_REG_BR2 ] & DMA_CBR2_BRSAO ) >> DMA_CBR2_BRSAO_Pos;
         }
         else
         {

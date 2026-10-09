@@ -60,8 +60,10 @@ static void It_Gpdma_ErrorCallback          ( gpdma_ErrorMaskId_t errorMask );
 /** Pattern written into destination buffer before transfer */
 #define IT_GPDMA_DST_FILL                   ( 0xA5A5A5A5u )
 
-/** Not mapped address (source of transfer error) */
-#define IT_GPDMA_INVALID_ADDR               ( 0x60000000u )
+/** Not mapped address (source of transfer error) - reserved area behind the flash memory
+ *  (STM32H5 flash has at most 2 MB at 0x08000000). 0x60000000 is FMC bank 1 on STM32H563 /
+ *  H573 / H5E5 and is accessed without bus error. */
+#define IT_GPDMA_INVALID_ADDR               ( 0x08200000u )
 
 /** Maximal count of wait loop iterations (timeout) */
 #define IT_GPDMA_WAIT_LOOPS                 ( 1000000u )
@@ -343,7 +345,7 @@ void It_Gpdma_Init_HalfAndCompleteIsr_HalfTransferBeforeComplete( void )
 /**
  * \brief   Transfer from not mapped address reports transfer error.
  *
- * \details Initializes channel 7 with source address 0x60000000 (not mapped),
+ * \details Initializes channel 7 with source address 0x08200000 (not mapped),
  *          error callback with mask GPDMA_ERROR_TRANSFER and complete callback,
  *          enables interrupt and channel and waits for error callback.
  *

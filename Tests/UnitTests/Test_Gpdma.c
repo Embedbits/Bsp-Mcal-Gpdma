@@ -1070,6 +1070,245 @@ void Ut_Gpdma_Isr_FlagsOfDisabledIrq_Ignored( void )
     TEST_ASSERT_EQUAL_HEX32( DMA_CFCR_TCF, UT_GPDMA1_CH( UT_GPDMA_CH_LINEAR )->CFCR );
 }
 
+/**
+ * \brief   Allocated ports of transfer list node - round trip.
+ *
+ * \details Writes source and destination port 0 and 1 to a node in emulated SRAM and
+ *          reads them back. Done for channel type GPDMA_CHANNEL_LINEAR and
+ *          GPDMA_CHANNEL_LINEAR_2D.
+ *
+ * \par Expected results
+ * - Setters and getters return GPDMA_REQUEST_OK, read ports equal written ones.
+ * - NULL node, invalid channel type and NULL output: GPDMA_REQUEST_ERROR.
+ */
+void Ut_Gpdma_XferList_Ports_RoundTrip( void )
+{
+    const gpdma_ChannelType_t channelTypes[ 2u ] = { GPDMA_CHANNEL_LINEAR, GPDMA_CHANNEL_LINEAR_2D };
+    const gpdma_PortId_t      ports[ 2u ]        = { GPDMA_PORT_0, GPDMA_PORT_1 };
+    volatile gpdma_XferList_t * const node = REGMEM_SRAM_PTR( volatile gpdma_XferList_t, UT_GPDMA_LIST_OFFSET_A );
+    gpdma_PortId_t            port = GPDMA_PORT_0;
+
+    for( uint32_t typeIdx = 0u; 2u > typeIdx; typeIdx++ )
+    {
+        for( uint32_t portIdx = 0u; 2u > portIdx; portIdx++ )
+        {
+            port = ( GPDMA_PORT_0 == ports[ portIdx ] ) ? GPDMA_PORT_1 : GPDMA_PORT_0;
+            TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_XferList_SrcPort( node, channelTypes[ typeIdx ], ports[ portIdx ], GPDMA_DIR_MEMORY_TO_MEMORY ) );
+            TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Get_XferList_SrcPort( node, channelTypes[ typeIdx ], &port ) );
+            TEST_ASSERT_EQUAL( ports[ portIdx ], port );
+
+            port = ( GPDMA_PORT_0 == ports[ portIdx ] ) ? GPDMA_PORT_1 : GPDMA_PORT_0;
+            TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_XferList_DestPort( node, channelTypes[ typeIdx ], ports[ portIdx ], GPDMA_DIR_MEMORY_TO_MEMORY ) );
+            TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Get_XferList_DestPort( node, channelTypes[ typeIdx ], &port ) );
+            TEST_ASSERT_EQUAL( ports[ portIdx ], port );
+        }
+    }
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Get_XferList_SrcPort( NULL, GPDMA_CHANNEL_LINEAR, &port ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Get_XferList_SrcPort( node, GPDMA_CHANNEL_OPTION_CNT, &port ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Get_XferList_SrcPort( node, GPDMA_CHANNEL_LINEAR, NULL ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Get_XferList_DestPort( NULL, GPDMA_CHANNEL_LINEAR, &port ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Get_XferList_DestPort( node, GPDMA_CHANNEL_OPTION_CNT, &port ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Get_XferList_DestPort( node, GPDMA_CHANNEL_LINEAR, NULL ) );
+}
+
+
+/**
+ * \brief   Gpdma_Set_XferList_Direction() / Gpdma_Get_XferList_Direction() round trip.
+ *
+ * \details Writes every transfer direction to a node in emulated SRAM and reads it
+ *          back. Done for channel type GPDMA_CHANNEL_LINEAR and GPDMA_CHANNEL_LINEAR_2D.
+ *
+ * \par Expected results
+ * - Setter and getter return GPDMA_REQUEST_OK, read direction equals written one.
+ * - NULL node, invalid direction and NULL output: GPDMA_REQUEST_ERROR.
+ */
+void Ut_Gpdma_XferList_Direction_RoundTrip( void )
+{
+    const gpdma_ChannelType_t channelTypes[ 2u ] = { GPDMA_CHANNEL_LINEAR, GPDMA_CHANNEL_LINEAR_2D };
+    const gpdma_Direction_t   directions[ 3u ]   = { GPDMA_DIR_PERIPH_TO_MEMORY, GPDMA_DIR_MEMORY_TO_PERIPH, GPDMA_DIR_MEMORY_TO_MEMORY };
+    volatile gpdma_XferList_t * const node = REGMEM_SRAM_PTR( volatile gpdma_XferList_t, UT_GPDMA_LIST_OFFSET_A );
+    gpdma_Direction_t         direction = GPDMA_DIR_PERIPH_TO_MEMORY;
+
+    for( uint32_t typeIdx = 0u; 2u > typeIdx; typeIdx++ )
+    {
+        for( uint32_t dirIdx = 0u; 3u > dirIdx; dirIdx++ )
+        {
+            TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_XferList_Direction( node, channelTypes[ typeIdx ], directions[ dirIdx ] ) );
+            TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Get_XferList_Direction( node, channelTypes[ typeIdx ], &direction ) );
+            TEST_ASSERT_EQUAL( directions[ dirIdx ], direction );
+        }
+    }
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Set_XferList_Direction( NULL, GPDMA_CHANNEL_LINEAR, GPDMA_DIR_MEMORY_TO_MEMORY ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Set_XferList_Direction( node, GPDMA_CHANNEL_LINEAR, GPDMA_DIR_CNT ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Get_XferList_Direction( node, GPDMA_CHANNEL_LINEAR, NULL ) );
+}
+
+
+/**
+ * \brief   Block offsets of 2D transfer list node - round trip.
+ *
+ * \details Writes source block offset 100 B / repeated block offset 200 B and destination
+ *          block offset 300 B / repeated block offset 400 B to a 2D node in emulated SRAM
+ *          and reads them back. A linear node ignores the offsets (not available).
+ *
+ * \par Expected results
+ * - 2D node: setters and getters return GPDMA_REQUEST_OK, read offsets equal written ones.
+ * - Linear node: GPDMA_REQUEST_OK, read offsets are 0.
+ * - NULL node, invalid channel type, NULL outputs: GPDMA_REQUEST_ERROR.
+ */
+void Ut_Gpdma_XferList_Offset2D_RoundTrip( void )
+{
+    volatile gpdma_XferList_t * const node = REGMEM_SRAM_PTR( volatile gpdma_XferList_t, UT_GPDMA_LIST_OFFSET_A );
+    gpdma_ByteCnt_t blockOffset    = 0xFFFFu;
+    gpdma_ByteCnt_t repBlockOffset = 0xFFFFu;
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_XferList_SrcOffset2D( node, GPDMA_CHANNEL_LINEAR_2D, 100u, 200u ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_XferList_DstOffset2D( node, GPDMA_CHANNEL_LINEAR_2D, 300u, 400u ) );
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Get_XferList_SrcOffset2D( node, GPDMA_CHANNEL_LINEAR_2D, &blockOffset, &repBlockOffset ) );
+    TEST_ASSERT_EQUAL_UINT32( 100u, blockOffset );
+    TEST_ASSERT_EQUAL_UINT32( 200u, repBlockOffset );
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Get_XferList_DstOffset2D( node, GPDMA_CHANNEL_LINEAR_2D, &blockOffset, &repBlockOffset ) );
+    TEST_ASSERT_EQUAL_UINT32( 300u, blockOffset );
+    TEST_ASSERT_EQUAL_UINT32( 400u, repBlockOffset );
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Get_XferList_SrcOffset2D( node, GPDMA_CHANNEL_LINEAR, &blockOffset, &repBlockOffset ) );
+    TEST_ASSERT_EQUAL_UINT32( 0u, blockOffset );
+    TEST_ASSERT_EQUAL_UINT32( 0u, repBlockOffset );
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Get_XferList_DstOffset2D( node, GPDMA_CHANNEL_LINEAR, &blockOffset, &repBlockOffset ) );
+    TEST_ASSERT_EQUAL_UINT32( 0u, blockOffset );
+    TEST_ASSERT_EQUAL_UINT32( 0u, repBlockOffset );
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_XferList_SrcOffset2D( node, GPDMA_CHANNEL_LINEAR, 1u, 1u ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_XferList_DstOffset2D( node, GPDMA_CHANNEL_LINEAR, 1u, 1u ) );
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Set_XferList_SrcOffset2D( NULL, GPDMA_CHANNEL_LINEAR_2D, 1u, 1u ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Set_XferList_DstOffset2D( node, GPDMA_CHANNEL_OPTION_CNT, 1u, 1u ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Get_XferList_SrcOffset2D( node, GPDMA_CHANNEL_LINEAR_2D, NULL, &repBlockOffset ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Get_XferList_DstOffset2D( node, GPDMA_CHANNEL_LINEAR_2D, &blockOffset, NULL ) );
+}
+
+
+/**
+ * \brief   Interrupt disable functions clear their own enable bit only.
+ *
+ * \details Enables all interrupts of channel 4 (TC, HT, DTE, USE, ULE, TO, SUSP), then
+ *          disables half transfer, transfer error, configuration error, configuration update
+ *          error, trigger overrun and suspension interrupt one by one.
+ *
+ * \par Expected results
+ * - Every function returns GPDMA_REQUEST_OK and clears exactly its enable bit (HTIE,
+ *   DTEIE, USEIE, ULEIE, TOIE, SUSPIE), transfer complete interrupt stays enabled.
+ * - Invalid peripheral / channel: GPDMA_REQUEST_ERROR.
+ */
+void Ut_Gpdma_IrqInactive_EachEvent_ClearsOwnEnableBit( void )
+{
+    const uint32_t allBits = DMA_CCR_TCIE | DMA_CCR_HTIE | DMA_CCR_DTEIE | DMA_CCR_USEIE | DMA_CCR_ULEIE | DMA_CCR_TOIE | DMA_CCR_SUSPIE;
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_TransferCompleteIrqActive  ( GPDMA_PERIPH_1, GPDMA_CHANNEL_4 ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_HalfTransferIrqActive      ( GPDMA_PERIPH_1, GPDMA_CHANNEL_4 ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_TransferErrorIrqActive     ( GPDMA_PERIPH_1, GPDMA_CHANNEL_4 ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_ConfigErrorIrqActive       ( GPDMA_PERIPH_1, GPDMA_CHANNEL_4 ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_ConfigUpdateErrorIrqActive ( GPDMA_PERIPH_1, GPDMA_CHANNEL_4 ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_TriggerOverrunIrqActive    ( GPDMA_PERIPH_1, GPDMA_CHANNEL_4 ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_SuspensionIrqActive        ( GPDMA_PERIPH_1, GPDMA_CHANNEL_4 ) );
+    TEST_ASSERT_EQUAL_HEX32( allBits, UT_GPDMA1_CH( GPDMA_CHANNEL_4 )->CCR );
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_HalfTransferIrqInactive( GPDMA_PERIPH_1, GPDMA_CHANNEL_4 ) );
+    TEST_ASSERT_EQUAL_HEX32( allBits & ~DMA_CCR_HTIE, UT_GPDMA1_CH( GPDMA_CHANNEL_4 )->CCR );
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_TransferErrorIrqInactive( GPDMA_PERIPH_1, GPDMA_CHANNEL_4 ) );
+    TEST_ASSERT_EQUAL_HEX32( allBits & ~( DMA_CCR_HTIE | DMA_CCR_DTEIE ), UT_GPDMA1_CH( GPDMA_CHANNEL_4 )->CCR );
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_ConfigErrorIrqInactive( GPDMA_PERIPH_1, GPDMA_CHANNEL_4 ) );
+    TEST_ASSERT_EQUAL_HEX32( allBits & ~( DMA_CCR_HTIE | DMA_CCR_DTEIE | DMA_CCR_USEIE ), UT_GPDMA1_CH( GPDMA_CHANNEL_4 )->CCR );
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_ConfigUpdateErrorIrqInactive( GPDMA_PERIPH_1, GPDMA_CHANNEL_4 ) );
+    TEST_ASSERT_EQUAL_HEX32( allBits & ~( DMA_CCR_HTIE | DMA_CCR_DTEIE | DMA_CCR_USEIE | DMA_CCR_ULEIE ), UT_GPDMA1_CH( GPDMA_CHANNEL_4 )->CCR );
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_TriggerOverrunIrqInactive( GPDMA_PERIPH_1, GPDMA_CHANNEL_4 ) );
+    TEST_ASSERT_EQUAL_HEX32( allBits & ~( DMA_CCR_HTIE | DMA_CCR_DTEIE | DMA_CCR_USEIE | DMA_CCR_ULEIE | DMA_CCR_TOIE ), UT_GPDMA1_CH( GPDMA_CHANNEL_4 )->CCR );
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_SuspensionIrqInactive( GPDMA_PERIPH_1, GPDMA_CHANNEL_4 ) );
+    TEST_ASSERT_EQUAL_HEX32( DMA_CCR_TCIE, UT_GPDMA1_CH( GPDMA_CHANNEL_4 )->CCR );
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Set_HalfTransferIrqInactive      ( GPDMA_PERIPH_CNT, GPDMA_CHANNEL_4 ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Set_TransferErrorIrqInactive     ( GPDMA_PERIPH_1,   GPDMA_CHANNEL_CNT ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Set_ConfigErrorIrqInactive       ( GPDMA_PERIPH_CNT, GPDMA_CHANNEL_4 ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Set_ConfigUpdateErrorIrqInactive ( GPDMA_PERIPH_1,   GPDMA_CHANNEL_CNT ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Set_TriggerOverrunIrqInactive    ( GPDMA_PERIPH_CNT, GPDMA_CHANNEL_4 ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Set_SuspensionIrqInactive        ( GPDMA_PERIPH_1,   GPDMA_CHANNEL_CNT ) );
+}
+
+
+/**
+ * \brief   Channel interrupt line is activated and deactivated in NVIC.
+ *
+ * \details Calls Gpdma_Set_InterruptActive() / Gpdma_Set_InterruptInactive() for GPDMA1
+ *          channel 4 (NVIC line of the channel), NVIC mock reports success and then error.
+ *
+ * \par Expected results
+ * - GPDMA_REQUEST_OK when NVIC succeeds, GPDMA_REQUEST_ERROR when NVIC reports error.
+ * - Invalid peripheral / channel: GPDMA_REQUEST_ERROR, NVIC is not called (strict mock).
+ */
+void Ut_Gpdma_Set_Interrupt_ActiveInactive_CallsNvicOfChannel( void )
+{
+    Nvic_Set_PeriphIrq_Active_ExpectAndReturn( NVIC_PERIPH_IRQ_GPDMA1_CHANNEL4, NVIC_REQUEST_OK );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_InterruptActive( GPDMA_PERIPH_1, GPDMA_CHANNEL_4 ) );
+
+    Nvic_Set_PeriphIrq_Active_ExpectAndReturn( NVIC_PERIPH_IRQ_GPDMA1_CHANNEL4, NVIC_REQUEST_ERROR );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Set_InterruptActive( GPDMA_PERIPH_1, GPDMA_CHANNEL_4 ) );
+
+    Nvic_Set_PeriphIrq_Inactive_ExpectAndReturn( NVIC_PERIPH_IRQ_GPDMA1_CHANNEL4, NVIC_REQUEST_OK );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_InterruptInactive( GPDMA_PERIPH_1, GPDMA_CHANNEL_4 ) );
+
+    Nvic_Set_PeriphIrq_Inactive_ExpectAndReturn( NVIC_PERIPH_IRQ_GPDMA1_CHANNEL4, NVIC_REQUEST_ERROR );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Set_InterruptInactive( GPDMA_PERIPH_1, GPDMA_CHANNEL_4 ) );
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Set_InterruptActive  ( GPDMA_PERIPH_CNT, GPDMA_CHANNEL_4 ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Set_InterruptInactive( GPDMA_PERIPH_1,   GPDMA_CHANNEL_CNT ) );
+}
+
+
+/**
+ * \brief   Interrupt handler of every GPDMA1 channel serves its own channel.
+ *
+ * \details For every channel of GPDMA1: registers are reset, the channel is initialized with
+ *          a transfer complete callback, TCF of the channel is preset and the ISR captured
+ *          from NVIC is called.
+ *
+ * \par Expected results
+ * - ISR registered in NVIC for the channel.
+ * - Transfer complete callback called once, TCF of the channel cleared by CFCR.
+ */
+void Ut_Gpdma_Isr_EveryChannel_CallsOwnCallback( void )
+{
+    for( uint32_t channelIdx = 0u; GPDMA_CHANNEL_CNT > channelIdx; channelIdx++ )
+    {
+        gpdma_ConfigStruct_t config;
+
+        TEST_ASSERT_EQUAL( REGMEM_REQUEST_OK, RegMem_Reset() );
+        utGpdma_ChannelIsr = NULL;
+        utGpdma_TcCnt      = 0u;
+
+        Ut_Gpdma_Get_Config( &config, (gpdma_ChannelId_t)channelIdx, UT_GPDMA_LIST_OFFSET_A );
+        Ut_Gpdma_Expect_ClockActivation( RCC_FUNCTION_INACTIVE );
+        TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Init( &config ) );
+        TEST_ASSERT_NOT_NULL( utGpdma_ChannelIsr );
+
+        UT_GPDMA1_CH( channelIdx )->CSR = DMA_CSR_TCF;
+
+        utGpdma_ChannelIsr();
+
+        TEST_ASSERT_EQUAL_UINT32( 1u, utGpdma_TcCnt );
+        TEST_ASSERT_EQUAL_HEX32( DMA_CFCR_TCF, UT_GPDMA1_CH( channelIdx )->CFCR );
+    }
+}
+
 /* =========================== DEINITIALIZATION ============================= */
 
 /**
