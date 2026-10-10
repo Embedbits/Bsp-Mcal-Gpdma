@@ -4,6 +4,30 @@
 
 The `Gpdma` (General-Purpose DMA) module in MCAL provides an abstraction for configuring and managing DMA transfers on STM32 microcontrollers. It exposes public types and configuration structures for flexible DMA usage in embedded applications.
 
+## 📘 STM32H7 specifics
+
+Public interface of the STM32H5 module (`Dev/STM32H5`).
+
+- **Devices** - only STM32H7R3 / H7R7 / H7S3 / H7S7 (Ral family STM32H7RS) have GPDMA. The classic STM32H7 lines
+  (DMA1 / DMA2 streams + DMAMUX1, module `Dma`) have no GPDMA - `Gpdma_Lib` is empty there, unit tests are registered
+  only for `MCU_FAMILY_ID` `STM32H7RSxx`.
+- **Controllers** - `GPDMA_PERIPH_1` = GPDMA1, `GPDMA_PERIPH_2` = HPDMA1 (high-performance DMA), 16 channels each
+  (`GPDMA_CHANNEL_0` - `GPDMA_CHANNEL_15`), channels 12 - 15 with 2D addressing, own NVIC line per channel.
+- **Requests / triggers** - values are the request / trigger numbers of the controller: `GPDMA_REQ_x` / `GPDMA_TRG_x`
+  for GPDMA1, `GPDMA_REQ_HPDMA1_x` / `GPDMA_TRG_HPDMA1_x` for HPDMA1 (use with `GPDMA_PERIPH_2` only). CRYP / SAES
+  requests and LTDC / GPU2D triggers exist only on devices with the peripheral.
+- **Default ports** (`GPDMA_PORT_DEFAULT`, ST STM32CubeH7RS examples) - GPDMA1: memories and peripherals on port 0,
+  transfer list nodes loaded through port 1; HPDMA1: memories on AXI port 0, peripherals on AHB port 1, nodes loaded
+  through port 0. `Gpdma_Init()` applies them to the channel and to the generated nodes; the transfer list port
+  setters (`Gpdma_Set_XferList_SrcPort()` / `DestPort()`) resolve the default to port 0 (HPDMA1 nodes built without
+  `Gpdma_Init()` need explicit port 1 on the peripheral side).
+- **RAM location** - `Gpdma_Check_RamLocation()` checks the AXI SRAM (`RAM`) and the AHB SRAM (`RAM_D2`) regions of the
+  STM32H7 linker script.
+- **Cache** - Cortex-M7 D-cache: DMA buffers and transfer list nodes in cacheable memory need cache maintenance or a
+  non-cacheable MPU region (ST examples use a `noncacheable_buffer` section).
+
+Not yet tested on hardware (integration tests prepared with the IT phase on NUCLEO-H7S3L8).
+
 ## File Structure
 
 - `Gpdma_Port.h` — Declares the public API functions for the Gpdma module.
