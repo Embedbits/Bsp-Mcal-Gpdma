@@ -162,6 +162,16 @@ typedef uint16_t gpdma_BurstLength_t;
 typedef uint16_t gpdma_BlockSize_t;
 
 
+/** \brief Type representing level of the channel FIFO.
+ *
+ * Count of data read from the source and not yet written to the destination, in units
+ * of the destination data size (\ref gpdma_DataSize_t). The block size
+ * (\ref gpdma_BlockSize_t) counts the data read from the source - data written to the
+ * destination = programmed block size - remaining block size - FIFO level.
+ */
+typedef uint16_t gpdma_FifoLevel_t;
+
+
 /** \brief Type representing count of repetitions in single transfer (only for 2D transfers).
  *
  * This type specifies count of repetitions of single transfer (specified by
@@ -194,18 +204,43 @@ typedef enum
 }   gpdma_PeriphId_t;
 
 
-/** Enumeration of available channels for all DMA peripherals */
+/**
+ * \brief Enumeration of available channels for all DMA peripherals
+ *
+ * GPDMA1 and GPDMA2 have the same channel implementation:
+ *  - STM32H5E4 / H5E5 / H5F4 / H5F5 (RM0517 Rev 1, table 126 "GPDMA1/2 channel implementation"):
+ *    12 channels, channels 0 - 7 FIFO 8 bytes linear addressing, channels 8 - 9 FIFO 32 bytes
+ *    linear addressing, channels 10 - 11 FIFO 32 bytes linear or 2D addressing.
+ *  - other STM32H5 device lines (RM0481 Rev 5, table 140; RM0492 Rev 3, table 85): 8 channels,
+ *    channels 0 - 3 FIFO 8 bytes linear addressing, channels 4 - 5 FIFO 32 bytes linear
+ *    addressing, channels 6 - 7 FIFO 32 bytes linear or 2D addressing.
+ */
 typedef enum
 {
-    GPDMA_CHANNEL_0 = 0u, /**< DMA transfer channel 0 (FIFO size 8 bytes) linear addressing mode        */
-    GPDMA_CHANNEL_1,      /**< DMA transfer channel 1 (FIFO size 8 bytes) linear addressing mode        */
-    GPDMA_CHANNEL_2,      /**< DMA transfer channel 2 (FIFO size 8 bytes) linear addressing mode        */
-    GPDMA_CHANNEL_3,      /**< DMA transfer channel 3 (FIFO size 8 bytes) linear addressing mode        */
-    GPDMA_CHANNEL_4,      /**< DMA transfer channel 4 (FIFO size 32 bytes) linear addressing mode       */
-    GPDMA_CHANNEL_5,      /**< DMA transfer channel 5 (FIFO size 32 bytes) linear addressing mode       */
-    GPDMA_CHANNEL_6,      /**< DMA transfer channel 6 (FIFO size 32 bytes) linear or 2D addressing mode */
-    GPDMA_CHANNEL_7,      /**< DMA transfer channel 7 (FIFO size 32 bytes) linear or 2D addressing mode */
-    GPDMA_CHANNEL_CNT     /**< Count of available channels for all DMA peripherals                      */
+#if defined(GPDMA1_Channel8)
+    GPDMA_CHANNEL_0 = 0u, /**< DMA transfer channel 0 (FIFO size 8 bytes) linear addressing mode         */
+    GPDMA_CHANNEL_1,      /**< DMA transfer channel 1 (FIFO size 8 bytes) linear addressing mode         */
+    GPDMA_CHANNEL_2,      /**< DMA transfer channel 2 (FIFO size 8 bytes) linear addressing mode         */
+    GPDMA_CHANNEL_3,      /**< DMA transfer channel 3 (FIFO size 8 bytes) linear addressing mode         */
+    GPDMA_CHANNEL_4,      /**< DMA transfer channel 4 (FIFO size 8 bytes) linear addressing mode         */
+    GPDMA_CHANNEL_5,      /**< DMA transfer channel 5 (FIFO size 8 bytes) linear addressing mode         */
+    GPDMA_CHANNEL_6,      /**< DMA transfer channel 6 (FIFO size 8 bytes) linear addressing mode         */
+    GPDMA_CHANNEL_7,      /**< DMA transfer channel 7 (FIFO size 8 bytes) linear addressing mode         */
+    GPDMA_CHANNEL_8,      /**< DMA transfer channel 8 (FIFO size 32 bytes) linear addressing mode        */
+    GPDMA_CHANNEL_9,      /**< DMA transfer channel 9 (FIFO size 32 bytes) linear addressing mode        */
+    GPDMA_CHANNEL_10,     /**< DMA transfer channel 10 (FIFO size 32 bytes) linear or 2D addressing mode */
+    GPDMA_CHANNEL_11,     /**< DMA transfer channel 11 (FIFO size 32 bytes) linear or 2D addressing mode */
+#else
+    GPDMA_CHANNEL_0 = 0u, /**< DMA transfer channel 0 (FIFO size 8 bytes) linear addressing mode         */
+    GPDMA_CHANNEL_1,      /**< DMA transfer channel 1 (FIFO size 8 bytes) linear addressing mode         */
+    GPDMA_CHANNEL_2,      /**< DMA transfer channel 2 (FIFO size 8 bytes) linear addressing mode         */
+    GPDMA_CHANNEL_3,      /**< DMA transfer channel 3 (FIFO size 8 bytes) linear addressing mode         */
+    GPDMA_CHANNEL_4,      /**< DMA transfer channel 4 (FIFO size 32 bytes) linear addressing mode        */
+    GPDMA_CHANNEL_5,      /**< DMA transfer channel 5 (FIFO size 32 bytes) linear addressing mode        */
+    GPDMA_CHANNEL_6,      /**< DMA transfer channel 6 (FIFO size 32 bytes) linear or 2D addressing mode  */
+    GPDMA_CHANNEL_7,      /**< DMA transfer channel 7 (FIFO size 32 bytes) linear or 2D addressing mode  */
+#endif /* GPDMA1_Channel8 */
+    GPDMA_CHANNEL_CNT     /**< Count of available channels for all DMA peripherals                       */
 }   gpdma_ChannelId_t;
 
 
@@ -333,12 +368,12 @@ typedef enum gpdma_PeriphReqId_t
     GPDMA_REQ_UART4_RX        = LL_GPDMA1_REQUEST_UART4_RX     , /**< GPDMA1 HW request is UART4_RX      */
     GPDMA_REQ_UART4_TX        = LL_GPDMA1_REQUEST_UART4_TX     , /**< GPDMA1 HW request is UART4_TX      */
 #endif /* UART4 */
-#if defined (UART4)
+#if defined (UART5)
     GPDMA_REQ_UART5_RX        = LL_GPDMA1_REQUEST_UART5_RX     , /**< GPDMA1 HW request is UART5_RX      */
     GPDMA_REQ_UART5_TX        = LL_GPDMA1_REQUEST_UART5_TX     , /**< GPDMA1 HW request is UART5_TX      */
 #endif /* UART5 */
-#if defined (UART4)
-    GPDMA_REQ_USART6_RX       = LL_GPDMA1_REQUEST_USART6_RX    , /**< GPDMA1 HW request is USART6_RX     */
+#if defined (USART6)
+    GPDMA_REQ_USART6_RX      = LL_GPDMA1_REQUEST_USART6_RX    , /**< GPDMA1 HW request is USART6_RX     */
     GPDMA_REQ_USART6_TX       = LL_GPDMA1_REQUEST_USART6_TX    , /**< GPDMA1 HW request is USART6_TX     */
 #endif /* USART6 */
 #if defined (UART7)
@@ -505,6 +540,27 @@ typedef enum gpdma_PeriphReqId_t
     GPDMA_REQ_I3C2_TC         = LL_GPDMA1_REQUEST_I3C2_TC      , /**< GPDMA1 HW request is I3C2_TC       */
     GPDMA_REQ_I3C2_RS         = LL_GPDMA1_REQUEST_I3C2_RS      , /**< GPDMA1 HW request is I3C2_RS       */
 #endif /* I3C2 */
+#if defined (JPEG)
+    GPDMA_REQ_JPEG_RX         = LL_GPDMA1_REQUEST_JPEG_RX_REQ  , /**< GPDMA1 HW request is JPEG_RX       */
+    GPDMA_REQ_JPEG_TX         = LL_GPDMA1_REQUEST_JPEG_TX_REQ  , /**< GPDMA1 HW request is JPEG_TX       */
+#endif /* JPEG */
+#if defined (ADC3)
+    GPDMA_REQ_ADC3            = LL_GPDMA1_REQUEST_ADC3         , /**< GPDMA1 HW request is ADC3          */
+#endif /* ADC3 */
+#if defined (OCTOSPI2)
+    GPDMA_REQ_OCTOSPI2        = LL_GPDMA1_REQUEST_OCTOSPI2     , /**< GPDMA1 HW request is OCTOSPI2      */
+#endif /* OCTOSPI2 */
+#if defined (MDF1)
+    GPDMA_REQ_MDF1_FLT0       = LL_GPDMA1_REQUEST_MDF1_FLT0    , /**< GPDMA1 HW request is MDF1_FLT0     */
+    GPDMA_REQ_MDF1_FLT1       = LL_GPDMA1_REQUEST_MDF1_FLT1    , /**< GPDMA1 HW request is MDF1_FLT1     */
+    GPDMA_REQ_MDF1_FLT2       = LL_GPDMA1_REQUEST_MDF1_FLT2    , /**< GPDMA1 HW request is MDF1_FLT2     */
+    GPDMA_REQ_MDF1_FLT3       = LL_GPDMA1_REQUEST_MDF1_FLT3    , /**< GPDMA1 HW request is MDF1_FLT3     */
+    GPDMA_REQ_MDF1_FLT4       = LL_GPDMA1_REQUEST_MDF1_FLT4    , /**< GPDMA1 HW request is MDF1_FLT4     */
+    GPDMA_REQ_MDF1_FLT5       = LL_GPDMA1_REQUEST_MDF1_FLT5    , /**< GPDMA1 HW request is MDF1_FLT5     */
+#endif /* MDF1 */
+#if defined (ADF1)
+    GPDMA_REQ_ADF1_FLT0       = LL_GPDMA1_REQUEST_ADF1_FLT0    , /**< GPDMA1 HW request is ADF1_FLT0     */
+#endif /* ADF1 */
 }   gpdma_PeriphReqId_t;
 
 
@@ -584,9 +640,59 @@ typedef enum gpdma_TrgSrcId_t
 #if defined (COMP1)
     GPDMA_TRG_COMP1_OUT      = LL_GPDMA1_TRIGGER_COMP1_OUT      , /**< GPDMA1 HW Trigger signal is COMP1_OUT          */
 #endif /* COMP1 */
-#if defined (STM32H503xx) || defined(STM32H523xx) || defined(STM32H533xx)
+#if defined (STM32H503xx) || \
+    defined (STM32H523xx) || \
+    defined (STM32H533xx) || \
+    defined (STM32H543xx) || \
+    defined (STM32H553xx) || \
+    defined (STM32H5E4xx) || \
+    defined (STM32H5E5xx) || \
+    defined (STM32H5F4xx) || \
+    defined (STM32H5F5xx)
     GPDMA_TRG_EVENTOUT       = LL_GPDMA1_TRIGGER_EVENTOUT       , /**< GPDMA1 HW Trigger signal is EVENTOUT           */
-#endif /* STM32H503xx || STM32H523xx || STM32H533xx */
+#endif /* STM32H503xx || STM32H523xx || STM32H533xx || STM32H543xx || STM32H553xx || STM32H5E4xx || STM32H5E5xx || STM32H5F4xx || STM32H5F5xx */
+#if defined (STM32H543xx) || \
+    defined (STM32H553xx) || \
+    defined (STM32H5E4xx) || \
+    defined (STM32H5E5xx) || \
+    defined (STM32H5F4xx) || \
+    defined (STM32H5F5xx)
+    GPDMA_TRG_COMP2_OUT      = LL_GPDMA1_TRIGGER_COMP2_OUT      , /**< GPDMA1 HW Trigger signal is COMP2_OUT          */
+#if defined (STM32H5E4xx) || \
+    defined (STM32H5E5xx) || \
+    defined (STM32H5F4xx) || \
+    defined (STM32H5F5xx)
+    GPDMA_TRG_DMA2D_TC       = LL_GPDMA1_TRIGGER_DMA2D_TC_FLAG  , /**< GPDMA1 HW Trigger signal is DMA2D_TC           */
+    GPDMA_TRG_DMA2D_CTC      = LL_GPDMA1_TRIGGER_DMA2D_CTC_FLAG , /**< GPDMA1 HW Trigger signal is DMA2D_CTC          */
+    GPDMA_TRG_DMA2D_TW       = LL_GPDMA1_TRIGGER_DMA2D_TW_FLAG  , /**< GPDMA1 HW Trigger signal is DMA2D_TW           */
+    GPDMA_TRG_DMA2D_GPFLAGS0 = LL_GPDMA1_TRIGGER_DMA2D_GPFLAGS0 , /**< GPDMA1 HW Trigger signal is DMA2D_GPFLAGS[0]   */
+    GPDMA_TRG_DMA2D_GPFLAGS1 = LL_GPDMA1_TRIGGER_DMA2D_GPFLAGS1 , /**< GPDMA1 HW Trigger signal is DMA2D_GPFLAGS[1]   */
+    GPDMA_TRG_DMA2D_GPFLAGS2 = LL_GPDMA1_TRIGGER_DMA2D_GPFLAGS2 , /**< GPDMA1 HW Trigger signal is DMA2D_GPFLAGS[2]   */
+    GPDMA_TRG_DMA2D_GPFLAGS3 = LL_GPDMA1_TRIGGER_DMA2D_GPFLAGS3 , /**< GPDMA1 HW Trigger signal is DMA2D_GPFLAGS[3]   */
+    GPDMA_TRG_JPEG_IFT       = LL_GPDMA1_TRIGGER_JPEG_IFT_FLAG  , /**< GPDMA1 HW Trigger signal is JPEG_IFT           */
+    GPDMA_TRG_JPEG_IFNF      = LL_GPDMA1_TRIGGER_JPEG_IFNF_FLAG , /**< GPDMA1 HW Trigger signal is JPEG_IFNF          */
+    GPDMA_TRG_JPEG_OFT       = LL_GPDMA1_TRIGGER_JPEG_OFT_FLAG  , /**< GPDMA1 HW Trigger signal is JPEG_OFT           */
+    GPDMA_TRG_JPEG_OFNE      = LL_GPDMA1_TRIGGER_JPEG_OFNE_FLAG , /**< GPDMA1 HW Trigger signal is JPEG_OFNE          */
+    GPDMA_TRG_JPEG_EOC       = LL_GPDMA1_TRIGGER_JPEG_EOC_FLAG  , /**< GPDMA1 HW Trigger signal is JPEG_EOC           */
+    GPDMA_TRG_GFXTIM_EVT1    = LL_GPDMA1_TRIGGER_GFXTIM_EVT1    , /**< GPDMA1 HW Trigger signal is GFXTIM_EVT[1]      */
+    GPDMA_TRG_GFXTIM_EVT2    = LL_GPDMA1_TRIGGER_GFXTIM_EVT2    , /**< GPDMA1 HW Trigger signal is GFXTIM_EVT[2]      */
+    GPDMA_TRG_GFXTIM_EVT3    = LL_GPDMA1_TRIGGER_GFXTIM_EVT3    , /**< GPDMA1 HW Trigger signal is GFXTIM_EVT[2+4]    */
+    GPDMA_TRG_GFXTIM_EVT4    = LL_GPDMA1_TRIGGER_GFXTIM_EVT4    , /**< GPDMA1 HW Trigger signal is GFXTIM_EVT[4]      */
+    GPDMA_TRG_LCD_CTRL_SCANLINE = LL_GPDMA1_TRIGGER_LCD_CTRL_SCANLINE, /**< GPDMA1 HW Trigger signal is LCD_CTRL_SCANLINE */
+    GPDMA_TRG_GPDMA1_CH8_TCF = LL_GPDMA1_TRIGGER_GPDMA1_CH8_TCF , /**< GPDMA1 HW Trigger signal is GPDMA1_CH8_TCF     */
+    GPDMA_TRG_GPDMA1_CH9_TCF = LL_GPDMA1_TRIGGER_GPDMA1_CH9_TCF , /**< GPDMA1 HW Trigger signal is GPDMA1_CH9_TCF     */
+    GPDMA_TRG_GPDMA1_CH10_TCF = LL_GPDMA1_TRIGGER_GPDMA1_CH10_TCF, /**< GPDMA1 HW Trigger signal is GPDMA1_CH10_TCF    */
+    GPDMA_TRG_GPDMA1_CH11_TCF = LL_GPDMA1_TRIGGER_GPDMA1_CH11_TCF, /**< GPDMA1 HW Trigger signal is GPDMA1_CH11_TCF    */
+    GPDMA_TRG_GPDMA2_CH8_TCF = LL_GPDMA1_TRIGGER_GPDMA2_CH8_TCF , /**< GPDMA1 HW Trigger signal is GPDMA2_CH8_TCF     */
+    GPDMA_TRG_GPDMA2_CH9_TCF = LL_GPDMA1_TRIGGER_GPDMA2_CH9_TCF , /**< GPDMA1 HW Trigger signal is GPDMA2_CH9_TCF     */
+    GPDMA_TRG_GPDMA2_CH10_TCF = LL_GPDMA1_TRIGGER_GPDMA2_CH10_TCF, /**< GPDMA1 HW Trigger signal is GPDMA2_CH10_TCF    */
+    GPDMA_TRG_GPDMA2_CH11_TCF = LL_GPDMA1_TRIGGER_GPDMA2_CH11_TCF, /**< GPDMA1 HW Trigger signal is GPDMA2_CH11_TCF    */
+    /* PLAY1_OUT15 (72) is defined by LL for STM32H543 / H553 as well, but GPDMA_CxTR2.TRIGSEL of these
+       devices has 6 bits (RM0481 Rev 5, CMSIS DMA_CTR2_TRIGSEL_Msk = 0x3F) - the write would select
+       trigger 8 (TAMP_TRG1). TRIGSEL of STM32H5E4 / H5E5 / H5F4 / H5F5 has 7 bits (RM0517 Rev 1). */
+    GPDMA_TRG_PLAY1_OUT15    = LL_GPDMA1_TRIGGER_PLAY1_OUT15    , /**< GPDMA1 HW Trigger signal is PLAY1_OUT15        */
+#endif /* STM32H5E4xx || STM32H5E5xx || STM32H5F4xx || STM32H5F5xx */
+#endif /* STM32H543xx || STM32H553xx || STM32H5E4xx || STM32H5E5xx || STM32H5F4xx || STM32H5F5xx */
 }   gpdma_TrgSrcId_t;
 
 

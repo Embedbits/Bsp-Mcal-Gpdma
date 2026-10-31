@@ -186,6 +186,12 @@ static void Gpdma_Gpdma1Channel4_IsrHandler( void );
 static void Gpdma_Gpdma1Channel5_IsrHandler( void );
 static void Gpdma_Gpdma1Channel6_IsrHandler( void );
 static void Gpdma_Gpdma1Channel7_IsrHandler( void );
+#if defined(GPDMA1_Channel8)
+static void Gpdma_Gpdma1Channel8_IsrHandler( void );
+static void Gpdma_Gpdma1Channel9_IsrHandler( void );
+static void Gpdma_Gpdma1Channel10_IsrHandler( void );
+static void Gpdma_Gpdma1Channel11_IsrHandler( void );
+#endif /* GPDMA1_Channel8 */
 #if defined(GPDMA2)
 static void Gpdma_Gpdma2Channel0_IsrHandler( void );
 static void Gpdma_Gpdma2Channel1_IsrHandler( void );
@@ -195,6 +201,12 @@ static void Gpdma_Gpdma2Channel4_IsrHandler( void );
 static void Gpdma_Gpdma2Channel5_IsrHandler( void );
 static void Gpdma_Gpdma2Channel6_IsrHandler( void );
 static void Gpdma_Gpdma2Channel7_IsrHandler( void );
+#if defined(GPDMA1_Channel8)
+static void Gpdma_Gpdma2Channel8_IsrHandler( void );
+static void Gpdma_Gpdma2Channel9_IsrHandler( void );
+static void Gpdma_Gpdma2Channel10_IsrHandler( void );
+static void Gpdma_Gpdma2Channel11_IsrHandler( void );
+#endif /* GPDMA1_Channel8 */
 #endif
 
 static gpdma_RequestState_t Gpdma_Check_XferListRegion( gpdma_DataAddr_t baseAddr, volatile gpdma_XferList_t * const xferList, gpdma_TransfersCount_t xferCount );
@@ -214,7 +226,15 @@ static volatile gpdma_TransferRuntime_t     gpdma_Gpdma1RuntimeData[ GPDMA_CHANN
     { .ChannelId = GPDMA_CHANNEL_4 , .TransferLockState = GPDMA_TRANSFER_LIST_UNLOCKED, .XferCount = 0u, .FirstXferListAddr = 0u, .LastXferListAddr = 0u },
     { .ChannelId = GPDMA_CHANNEL_5 , .TransferLockState = GPDMA_TRANSFER_LIST_UNLOCKED, .XferCount = 0u, .FirstXferListAddr = 0u, .LastXferListAddr = 0u },
     { .ChannelId = GPDMA_CHANNEL_6 , .TransferLockState = GPDMA_TRANSFER_LIST_UNLOCKED, .XferCount = 0u, .FirstXferListAddr = 0u, .LastXferListAddr = 0u },
+#if defined(GPDMA1_Channel8)
+    { .ChannelId = GPDMA_CHANNEL_7 , .TransferLockState = GPDMA_TRANSFER_LIST_UNLOCKED, .XferCount = 0u, .FirstXferListAddr = 0u, .LastXferListAddr = 0u },
+    { .ChannelId = GPDMA_CHANNEL_8 , .TransferLockState = GPDMA_TRANSFER_LIST_UNLOCKED, .XferCount = 0u, .FirstXferListAddr = 0u, .LastXferListAddr = 0u },
+    { .ChannelId = GPDMA_CHANNEL_9 , .TransferLockState = GPDMA_TRANSFER_LIST_UNLOCKED, .XferCount = 0u, .FirstXferListAddr = 0u, .LastXferListAddr = 0u },
+    { .ChannelId = GPDMA_CHANNEL_10, .TransferLockState = GPDMA_TRANSFER_LIST_UNLOCKED, .XferCount = 0u, .FirstXferListAddr = 0u, .LastXferListAddr = 0u },
+    { .ChannelId = GPDMA_CHANNEL_11, .TransferLockState = GPDMA_TRANSFER_LIST_UNLOCKED, .XferCount = 0u, .FirstXferListAddr = 0u, .LastXferListAddr = 0u }
+#else
     { .ChannelId = GPDMA_CHANNEL_7 , .TransferLockState = GPDMA_TRANSFER_LIST_UNLOCKED, .XferCount = 0u, .FirstXferListAddr = 0u, .LastXferListAddr = 0u }
+#endif /* GPDMA1_Channel8 */
 };
 
 
@@ -228,7 +248,15 @@ static volatile gpdma_TransferRuntime_t     gpdma_Gpdma2RuntimeData[ GPDMA_CHANN
     { .ChannelId = GPDMA_CHANNEL_4 , .TransferLockState = GPDMA_TRANSFER_LIST_UNLOCKED, .XferCount = 0u, .FirstXferListAddr = 0u, .LastXferListAddr = 0u },
     { .ChannelId = GPDMA_CHANNEL_5 , .TransferLockState = GPDMA_TRANSFER_LIST_UNLOCKED, .XferCount = 0u, .FirstXferListAddr = 0u, .LastXferListAddr = 0u },
     { .ChannelId = GPDMA_CHANNEL_6 , .TransferLockState = GPDMA_TRANSFER_LIST_UNLOCKED, .XferCount = 0u, .FirstXferListAddr = 0u, .LastXferListAddr = 0u },
+#if defined(GPDMA1_Channel8)
+    { .ChannelId = GPDMA_CHANNEL_7 , .TransferLockState = GPDMA_TRANSFER_LIST_UNLOCKED, .XferCount = 0u, .FirstXferListAddr = 0u, .LastXferListAddr = 0u },
+    { .ChannelId = GPDMA_CHANNEL_8 , .TransferLockState = GPDMA_TRANSFER_LIST_UNLOCKED, .XferCount = 0u, .FirstXferListAddr = 0u, .LastXferListAddr = 0u },
+    { .ChannelId = GPDMA_CHANNEL_9 , .TransferLockState = GPDMA_TRANSFER_LIST_UNLOCKED, .XferCount = 0u, .FirstXferListAddr = 0u, .LastXferListAddr = 0u },
+    { .ChannelId = GPDMA_CHANNEL_10, .TransferLockState = GPDMA_TRANSFER_LIST_UNLOCKED, .XferCount = 0u, .FirstXferListAddr = 0u, .LastXferListAddr = 0u },
+    { .ChannelId = GPDMA_CHANNEL_11, .TransferLockState = GPDMA_TRANSFER_LIST_UNLOCKED, .XferCount = 0u, .FirstXferListAddr = 0u, .LastXferListAddr = 0u }
+#else
     { .ChannelId = GPDMA_CHANNEL_7 , .TransferLockState = GPDMA_TRANSFER_LIST_UNLOCKED, .XferCount = 0u, .FirstXferListAddr = 0u, .LastXferListAddr = 0u }
+#endif /* GPDMA1_Channel8 */
 };
 #endif
 
@@ -256,7 +284,15 @@ static volatile gpdma_IsrCallbacks_t        gpdma_Gpdma1IrqCallbacks[ GPDMA_CHAN
     { .ChannelId = GPDMA_CHANNEL_4  , .TransferCompleteCallback = GPDMA_NULL_PTR , .HalfTransferCallback = GPDMA_NULL_PTR , .ErrorCallback = GPDMA_NULL_PTR },
     { .ChannelId = GPDMA_CHANNEL_5  , .TransferCompleteCallback = GPDMA_NULL_PTR , .HalfTransferCallback = GPDMA_NULL_PTR , .ErrorCallback = GPDMA_NULL_PTR },
     { .ChannelId = GPDMA_CHANNEL_6  , .TransferCompleteCallback = GPDMA_NULL_PTR , .HalfTransferCallback = GPDMA_NULL_PTR , .ErrorCallback = GPDMA_NULL_PTR },
+#if defined(GPDMA1_Channel8)
+    { .ChannelId = GPDMA_CHANNEL_7  , .TransferCompleteCallback = GPDMA_NULL_PTR , .HalfTransferCallback = GPDMA_NULL_PTR , .ErrorCallback = GPDMA_NULL_PTR },
+    { .ChannelId = GPDMA_CHANNEL_8  , .TransferCompleteCallback = GPDMA_NULL_PTR , .HalfTransferCallback = GPDMA_NULL_PTR , .ErrorCallback = GPDMA_NULL_PTR },
+    { .ChannelId = GPDMA_CHANNEL_9  , .TransferCompleteCallback = GPDMA_NULL_PTR , .HalfTransferCallback = GPDMA_NULL_PTR , .ErrorCallback = GPDMA_NULL_PTR },
+    { .ChannelId = GPDMA_CHANNEL_10 , .TransferCompleteCallback = GPDMA_NULL_PTR , .HalfTransferCallback = GPDMA_NULL_PTR , .ErrorCallback = GPDMA_NULL_PTR },
+    { .ChannelId = GPDMA_CHANNEL_11 , .TransferCompleteCallback = GPDMA_NULL_PTR , .HalfTransferCallback = GPDMA_NULL_PTR , .ErrorCallback = GPDMA_NULL_PTR }
+#else
     { .ChannelId = GPDMA_CHANNEL_7  , .TransferCompleteCallback = GPDMA_NULL_PTR , .HalfTransferCallback = GPDMA_NULL_PTR , .ErrorCallback = GPDMA_NULL_PTR }
+#endif /* GPDMA1_Channel8 */
 };
 
 
@@ -270,7 +306,15 @@ static volatile gpdma_IsrCallbacks_t        gpdma_Gpdma2IrqCallbacks[ GPDMA_CHAN
     { .ChannelId = GPDMA_CHANNEL_4  , .TransferCompleteCallback = GPDMA_NULL_PTR , .HalfTransferCallback = GPDMA_NULL_PTR , .ErrorCallback = GPDMA_NULL_PTR },
     { .ChannelId = GPDMA_CHANNEL_5  , .TransferCompleteCallback = GPDMA_NULL_PTR , .HalfTransferCallback = GPDMA_NULL_PTR , .ErrorCallback = GPDMA_NULL_PTR },
     { .ChannelId = GPDMA_CHANNEL_6  , .TransferCompleteCallback = GPDMA_NULL_PTR , .HalfTransferCallback = GPDMA_NULL_PTR , .ErrorCallback = GPDMA_NULL_PTR },
+#if defined(GPDMA1_Channel8)
+    { .ChannelId = GPDMA_CHANNEL_7  , .TransferCompleteCallback = GPDMA_NULL_PTR , .HalfTransferCallback = GPDMA_NULL_PTR , .ErrorCallback = GPDMA_NULL_PTR },
+    { .ChannelId = GPDMA_CHANNEL_8  , .TransferCompleteCallback = GPDMA_NULL_PTR , .HalfTransferCallback = GPDMA_NULL_PTR , .ErrorCallback = GPDMA_NULL_PTR },
+    { .ChannelId = GPDMA_CHANNEL_9  , .TransferCompleteCallback = GPDMA_NULL_PTR , .HalfTransferCallback = GPDMA_NULL_PTR , .ErrorCallback = GPDMA_NULL_PTR },
+    { .ChannelId = GPDMA_CHANNEL_10 , .TransferCompleteCallback = GPDMA_NULL_PTR , .HalfTransferCallback = GPDMA_NULL_PTR , .ErrorCallback = GPDMA_NULL_PTR },
+    { .ChannelId = GPDMA_CHANNEL_11 , .TransferCompleteCallback = GPDMA_NULL_PTR , .HalfTransferCallback = GPDMA_NULL_PTR , .ErrorCallback = GPDMA_NULL_PTR }
+#else
     { .ChannelId = GPDMA_CHANNEL_7  , .TransferCompleteCallback = GPDMA_NULL_PTR , .HalfTransferCallback = GPDMA_NULL_PTR , .ErrorCallback = GPDMA_NULL_PTR }
+#endif /* GPDMA1_Channel8 */
 };
 #endif
 
@@ -283,8 +327,19 @@ static const gpdma_ChannelsConfig_t         gpdma_Gpdma1IrqConfig[ GPDMA_CHANNEL
     { .ChannelId = GPDMA_CHANNEL_3 , .ChannelTypeSupport = GPDMA_CHANNEL_LINEAR   , .NvicChannelIrq = NVIC_PERIPH_IRQ_GPDMA1_CHANNEL3 , .ChannelReg = LL_DMA_CHANNEL_3 , .ChannelIsrHandler = Gpdma_Gpdma1Channel3_IsrHandler },
     { .ChannelId = GPDMA_CHANNEL_4 , .ChannelTypeSupport = GPDMA_CHANNEL_LINEAR   , .NvicChannelIrq = NVIC_PERIPH_IRQ_GPDMA1_CHANNEL4 , .ChannelReg = LL_DMA_CHANNEL_4 , .ChannelIsrHandler = Gpdma_Gpdma1Channel4_IsrHandler },
     { .ChannelId = GPDMA_CHANNEL_5 , .ChannelTypeSupport = GPDMA_CHANNEL_LINEAR   , .NvicChannelIrq = NVIC_PERIPH_IRQ_GPDMA1_CHANNEL5 , .ChannelReg = LL_DMA_CHANNEL_5 , .ChannelIsrHandler = Gpdma_Gpdma1Channel5_IsrHandler },
+#if defined(GPDMA1_Channel8)
+    /* STM32H5E4 / H5E5 / H5F4 / H5F5: 2D addressing on channels 10 - 11 only (RM0517 Rev 1, table 126) */
+    { .ChannelId = GPDMA_CHANNEL_6 , .ChannelTypeSupport = GPDMA_CHANNEL_LINEAR   , .NvicChannelIrq = NVIC_PERIPH_IRQ_GPDMA1_CHANNEL6 , .ChannelReg = LL_DMA_CHANNEL_6 , .ChannelIsrHandler = Gpdma_Gpdma1Channel6_IsrHandler },
+    { .ChannelId = GPDMA_CHANNEL_7 , .ChannelTypeSupport = GPDMA_CHANNEL_LINEAR   , .NvicChannelIrq = NVIC_PERIPH_IRQ_GPDMA1_CHANNEL7 , .ChannelReg = LL_DMA_CHANNEL_7 , .ChannelIsrHandler = Gpdma_Gpdma1Channel7_IsrHandler },
+    { .ChannelId = GPDMA_CHANNEL_8 , .ChannelTypeSupport = GPDMA_CHANNEL_LINEAR   , .NvicChannelIrq = NVIC_PERIPH_IRQ_GPDMA1_CHANNEL8 , .ChannelReg = LL_DMA_CHANNEL_8 , .ChannelIsrHandler = Gpdma_Gpdma1Channel8_IsrHandler },
+    { .ChannelId = GPDMA_CHANNEL_9 , .ChannelTypeSupport = GPDMA_CHANNEL_LINEAR   , .NvicChannelIrq = NVIC_PERIPH_IRQ_GPDMA1_CHANNEL9 , .ChannelReg = LL_DMA_CHANNEL_9 , .ChannelIsrHandler = Gpdma_Gpdma1Channel9_IsrHandler },
+    { .ChannelId = GPDMA_CHANNEL_10, .ChannelTypeSupport = GPDMA_CHANNEL_LINEAR_2D, .NvicChannelIrq = NVIC_PERIPH_IRQ_GPDMA1_CHANNEL10, .ChannelReg = LL_DMA_CHANNEL_10, .ChannelIsrHandler = Gpdma_Gpdma1Channel10_IsrHandler },
+    { .ChannelId = GPDMA_CHANNEL_11, .ChannelTypeSupport = GPDMA_CHANNEL_LINEAR_2D, .NvicChannelIrq = NVIC_PERIPH_IRQ_GPDMA1_CHANNEL11, .ChannelReg = LL_DMA_CHANNEL_11, .ChannelIsrHandler = Gpdma_Gpdma1Channel11_IsrHandler }
+#else
+    /* Other STM32H5 device lines: 2D addressing on channels 6 - 7 (RM0481 Rev 5, table 140; RM0492 Rev 3, table 85) */
     { .ChannelId = GPDMA_CHANNEL_6 , .ChannelTypeSupport = GPDMA_CHANNEL_LINEAR_2D, .NvicChannelIrq = NVIC_PERIPH_IRQ_GPDMA1_CHANNEL6 , .ChannelReg = LL_DMA_CHANNEL_6 , .ChannelIsrHandler = Gpdma_Gpdma1Channel6_IsrHandler },
     { .ChannelId = GPDMA_CHANNEL_7 , .ChannelTypeSupport = GPDMA_CHANNEL_LINEAR_2D, .NvicChannelIrq = NVIC_PERIPH_IRQ_GPDMA1_CHANNEL7 , .ChannelReg = LL_DMA_CHANNEL_7 , .ChannelIsrHandler = Gpdma_Gpdma1Channel7_IsrHandler }
+#endif /* GPDMA1_Channel8 */
 };
 
 
@@ -297,8 +352,19 @@ static const gpdma_ChannelsConfig_t         gpdma_Gpdma2IrqConfig[ GPDMA_CHANNEL
     { .ChannelId = GPDMA_CHANNEL_3 , .ChannelTypeSupport = GPDMA_CHANNEL_LINEAR   , .NvicChannelIrq = NVIC_PERIPH_IRQ_GPDMA2_CHANNEL3 , .ChannelReg = LL_DMA_CHANNEL_3 , .ChannelIsrHandler = Gpdma_Gpdma2Channel3_IsrHandler },
     { .ChannelId = GPDMA_CHANNEL_4 , .ChannelTypeSupport = GPDMA_CHANNEL_LINEAR   , .NvicChannelIrq = NVIC_PERIPH_IRQ_GPDMA2_CHANNEL4 , .ChannelReg = LL_DMA_CHANNEL_4 , .ChannelIsrHandler = Gpdma_Gpdma2Channel4_IsrHandler },
     { .ChannelId = GPDMA_CHANNEL_5 , .ChannelTypeSupport = GPDMA_CHANNEL_LINEAR   , .NvicChannelIrq = NVIC_PERIPH_IRQ_GPDMA2_CHANNEL5 , .ChannelReg = LL_DMA_CHANNEL_5 , .ChannelIsrHandler = Gpdma_Gpdma2Channel5_IsrHandler },
+#if defined(GPDMA1_Channel8)
+    /* STM32H5E4 / H5E5 / H5F4 / H5F5: 2D addressing on channels 10 - 11 only (RM0517 Rev 1, table 126) */
+    { .ChannelId = GPDMA_CHANNEL_6 , .ChannelTypeSupport = GPDMA_CHANNEL_LINEAR   , .NvicChannelIrq = NVIC_PERIPH_IRQ_GPDMA2_CHANNEL6 , .ChannelReg = LL_DMA_CHANNEL_6 , .ChannelIsrHandler = Gpdma_Gpdma2Channel6_IsrHandler },
+    { .ChannelId = GPDMA_CHANNEL_7 , .ChannelTypeSupport = GPDMA_CHANNEL_LINEAR   , .NvicChannelIrq = NVIC_PERIPH_IRQ_GPDMA2_CHANNEL7 , .ChannelReg = LL_DMA_CHANNEL_7 , .ChannelIsrHandler = Gpdma_Gpdma2Channel7_IsrHandler },
+    { .ChannelId = GPDMA_CHANNEL_8 , .ChannelTypeSupport = GPDMA_CHANNEL_LINEAR   , .NvicChannelIrq = NVIC_PERIPH_IRQ_GPDMA2_CHANNEL8 , .ChannelReg = LL_DMA_CHANNEL_8 , .ChannelIsrHandler = Gpdma_Gpdma2Channel8_IsrHandler },
+    { .ChannelId = GPDMA_CHANNEL_9 , .ChannelTypeSupport = GPDMA_CHANNEL_LINEAR   , .NvicChannelIrq = NVIC_PERIPH_IRQ_GPDMA2_CHANNEL9 , .ChannelReg = LL_DMA_CHANNEL_9 , .ChannelIsrHandler = Gpdma_Gpdma2Channel9_IsrHandler },
+    { .ChannelId = GPDMA_CHANNEL_10, .ChannelTypeSupport = GPDMA_CHANNEL_LINEAR_2D, .NvicChannelIrq = NVIC_PERIPH_IRQ_GPDMA2_CHANNEL10, .ChannelReg = LL_DMA_CHANNEL_10, .ChannelIsrHandler = Gpdma_Gpdma2Channel10_IsrHandler },
+    { .ChannelId = GPDMA_CHANNEL_11, .ChannelTypeSupport = GPDMA_CHANNEL_LINEAR_2D, .NvicChannelIrq = NVIC_PERIPH_IRQ_GPDMA2_CHANNEL11, .ChannelReg = LL_DMA_CHANNEL_11, .ChannelIsrHandler = Gpdma_Gpdma2Channel11_IsrHandler }
+#else
+    /* Other STM32H5 device lines: 2D addressing on channels 6 - 7 (RM0481 Rev 5, table 140; RM0492 Rev 3, table 85) */
     { .ChannelId = GPDMA_CHANNEL_6 , .ChannelTypeSupport = GPDMA_CHANNEL_LINEAR_2D, .NvicChannelIrq = NVIC_PERIPH_IRQ_GPDMA2_CHANNEL6 , .ChannelReg = LL_DMA_CHANNEL_6 , .ChannelIsrHandler = Gpdma_Gpdma2Channel6_IsrHandler },
     { .ChannelId = GPDMA_CHANNEL_7 , .ChannelTypeSupport = GPDMA_CHANNEL_LINEAR_2D, .NvicChannelIrq = NVIC_PERIPH_IRQ_GPDMA2_CHANNEL7 , .ChannelReg = LL_DMA_CHANNEL_7 , .ChannelIsrHandler = Gpdma_Gpdma2Channel7_IsrHandler }
+#endif /* GPDMA1_Channel8 */
 };
 #endif
 
@@ -3537,6 +3603,47 @@ gpdma_RequestState_t Gpdma_Get_BlockSize( gpdma_PeriphId_t periphId,
 
 
 /**
+ * \brief Gets the level of the channel FIFO - data read from the source and not yet written
+ *        to the destination.
+ *
+ * \note The remaining block size (Gpdma_Get_BlockSize()) counts the data read from the source.
+ *       Data written to the destination = programmed block size - remaining block size - FIFO
+ *       level (eg. memory to peripheral transfer stopped by the peripheral).
+ *
+ * \param periphId   [in]: The DMA bus identifier.
+ * \param channelId  [in]: The DMA channel identifier.
+ * \param fifoLevel [out]: Pointer to FIFO level in units of the destination data size.
+ *
+ * \return Processing request state. If request executed successfully returns "OK",
+ *         otherwise returns error.
+ */
+gpdma_RequestState_t Gpdma_Get_FifoLevel( gpdma_PeriphId_t periphId,
+                                          gpdma_ChannelId_t channelId,
+                                          gpdma_FifoLevel_t * const fifoLevel )
+{
+    gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
+
+    if( ( GPDMA_PERIPH_CNT  > periphId  ) &&
+        ( GPDMA_CHANNEL_CNT > channelId ) &&
+        ( GPDMA_NULL_PTR   != fifoLevel )    )
+    {
+        uint32_t regVal = LL_DMA_GetFIFOLevel( gpdma_PeriphConf[ periphId ].DmaReg,
+                                               gpdma_PeriphConf[ periphId ].ChannelsConfig[ channelId ].ChannelReg );
+
+        *fifoLevel = (gpdma_FifoLevel_t)regVal;
+
+        status = GPDMA_REQUEST_OK;
+    }
+    else
+    {
+        status = GPDMA_REQUEST_ERROR;
+    }
+
+    return ( status );
+}
+
+
+/**
  * \brief Sets the repetition count of data blocks for the DMA transfer (only for 2D transfers).
  *
  * \note This can be used only if channel is NOT active.
@@ -4602,15 +4709,14 @@ gpdma_FlagState_t Gpdma_Check_RamLocation( uint32_t addr )
 {
     gpdma_FlagState_t flagState = GPDMA_FLAG_INACTIVE;
 
+    /* The linker region RAM of STM32H5 covers all the SRAM blocks of the device
+     * (SRAM1 .. SRAM3, SRAM1 .. SRAM5 on STM32H5E / H5F, one contiguous area) -
+     * no separate region RAM4 as on STM32U5 */
     extern uint32_t _ram_start;
     extern uint32_t _ram_end;
-    extern uint32_t _ram4_start;
-    extern uint32_t _ram4_end;
 
-    if( ( ( (uint32_t)&_ram_start  <= addr ) &&
-          ( (uint32_t)&_ram_end     > addr )    ) ||
-        ( ( (uint32_t)&_ram4_start <= addr ) &&
-          ( (uint32_t)&_ram4_end    > addr )    )    )
+    if( ( (uint32_t)&_ram_start <= addr ) &&
+        ( (uint32_t)&_ram_end    > addr )    )
     {
         flagState = GPDMA_FLAG_ACTIVE;
     }
@@ -4871,6 +4977,44 @@ static void Gpdma_Gpdma1Channel7_IsrHandler( void )
 }
 
 
+#if defined(GPDMA1_Channel8)
+/**
+ * \brief GPDMA1 channel 8 interrupt service routine.
+ */
+static void Gpdma_Gpdma1Channel8_IsrHandler( void )
+{
+    Gpdma_GlobalIsrHandler( GPDMA_PERIPH_1, GPDMA_CHANNEL_8 );
+}
+
+
+/**
+ * \brief GPDMA1 channel 9 interrupt service routine.
+ */
+static void Gpdma_Gpdma1Channel9_IsrHandler( void )
+{
+    Gpdma_GlobalIsrHandler( GPDMA_PERIPH_1, GPDMA_CHANNEL_9 );
+}
+
+
+/**
+ * \brief GPDMA1 channel 10 interrupt service routine.
+ */
+static void Gpdma_Gpdma1Channel10_IsrHandler( void )
+{
+    Gpdma_GlobalIsrHandler( GPDMA_PERIPH_1, GPDMA_CHANNEL_10 );
+}
+
+
+/**
+ * \brief GPDMA1 channel 11 interrupt service routine.
+ */
+static void Gpdma_Gpdma1Channel11_IsrHandler( void )
+{
+    Gpdma_GlobalIsrHandler( GPDMA_PERIPH_1, GPDMA_CHANNEL_11 );
+}
+#endif /* GPDMA1_Channel8 */
+
+
 #if defined(GPDMA2)
 
 
@@ -4944,6 +5088,44 @@ static void Gpdma_Gpdma2Channel7_IsrHandler( void )
 {
     Gpdma_GlobalIsrHandler( GPDMA_PERIPH_2, GPDMA_CHANNEL_7 );
 }
+
+
+#if defined(GPDMA1_Channel8)
+/**
+ * \brief GPDMA2 channel 8 interrupt service routine.
+ */
+static void Gpdma_Gpdma2Channel8_IsrHandler( void )
+{
+    Gpdma_GlobalIsrHandler( GPDMA_PERIPH_2, GPDMA_CHANNEL_8 );
+}
+
+
+/**
+ * \brief GPDMA2 channel 9 interrupt service routine.
+ */
+static void Gpdma_Gpdma2Channel9_IsrHandler( void )
+{
+    Gpdma_GlobalIsrHandler( GPDMA_PERIPH_2, GPDMA_CHANNEL_9 );
+}
+
+
+/**
+ * \brief GPDMA2 channel 10 interrupt service routine.
+ */
+static void Gpdma_Gpdma2Channel10_IsrHandler( void )
+{
+    Gpdma_GlobalIsrHandler( GPDMA_PERIPH_2, GPDMA_CHANNEL_10 );
+}
+
+
+/**
+ * \brief GPDMA2 channel 11 interrupt service routine.
+ */
+static void Gpdma_Gpdma2Channel11_IsrHandler( void )
+{
+    Gpdma_GlobalIsrHandler( GPDMA_PERIPH_2, GPDMA_CHANNEL_11 );
+}
+#endif /* GPDMA1_Channel8 */
 
 #endif
 

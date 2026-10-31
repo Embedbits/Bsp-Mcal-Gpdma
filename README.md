@@ -4,6 +4,23 @@
 
 The `Gpdma` (General-Purpose DMA) module in MCAL provides an abstraction for configuring and managing DMA transfers on STM32 microcontrollers. It exposes public types and configuration structures for flexible DMA usage in embedded applications.
 
+## STM32H5 Specifics
+
+### Channels
+
+Every STM32H5 device has **GPDMA1** and **GPDMA2** (`GPDMA_PERIPH_1`, `GPDMA_PERIPH_2`) with the same channel implementation. The count of channels and the channels with 2D addressing depend on the device line, `gpdma_ChannelId_t` holds exactly the channels of the line:
+
+| Device lines | Channels | FIFO | Addressing |
+|---|---|---|---|
+| STM32H5E4 / H5E5 / H5F4 / H5F5 (RM0517 Rev 1, table 126 "GPDMA1/2 channel implementation") | `GPDMA_CHANNEL_0` - `GPDMA_CHANNEL_7` | 8 bytes (2 words) | linear |
+| | `GPDMA_CHANNEL_8` - `GPDMA_CHANNEL_9` | 32 bytes (8 words) | linear |
+| | `GPDMA_CHANNEL_10` - `GPDMA_CHANNEL_11` | 32 bytes (8 words) | linear or 2D |
+| other STM32H5 lines (RM0481 Rev 5, table 140; RM0492 Rev 3, table 85) | `GPDMA_CHANNEL_0` - `GPDMA_CHANNEL_3` | 8 bytes (2 words) | linear |
+| | `GPDMA_CHANNEL_4` - `GPDMA_CHANNEL_5` | 32 bytes (8 words) | linear |
+| | `GPDMA_CHANNEL_6` - `GPDMA_CHANNEL_7` | 32 bytes (8 words) | linear or 2D |
+
+The 2D settings of a channel (`Gpdma_Set_BlockRepeatCount()` with a count other than 0, trigger mode `GPDMA_TRIGGER_2D_BLOCK`) are refused on the linear channels; `Gpdma_Init()` builds the transfer list of a linear channel without the 2D registers (block repetition and 2D offsets are not written). The interrupt of every channel is a separate vector (`NVIC_PERIPH_IRQ_GPDMAx_CHANNEL0` - `NVIC_PERIPH_IRQ_GPDMAx_CHANNEL7`, on STM32H5E4 / H5E5 / H5F4 / H5F5 also `NVIC_PERIPH_IRQ_GPDMAx_CHANNEL8` - `NVIC_PERIPH_IRQ_GPDMAx_CHANNEL11`). The channels 8 - 11 are guarded by the CMSIS macro `GPDMA1_Channel8`.
+
 ## File Structure
 
 - `Gpdma_Port.h` — Declares the public API functions for the Gpdma module.

@@ -24,6 +24,21 @@
 #include "Stm32_usart.h"                    /* USART1 data register address   */
 /* ============================= TYPEDEFS =================================== */
 
+/** Request item of the module and its LL request number */
+typedef struct
+{
+    gpdma_PeriphReqId_t Item;       /**< Module request item  */
+    uint32_t            LlRequest;  /**< LL request number    */
+}   utGpdma_RequestItem_t;
+
+
+/** Trigger item of the module and its LL trigger number */
+typedef struct
+{
+    gpdma_TrgSrcId_t    Item;       /**< Module trigger item  */
+    uint32_t            LlTrigger;  /**< LL trigger number    */
+}   utGpdma_TriggerItem_t;
+
 /* ======================= FORWARD DECLARATIONS ============================= */
 
 static nvic_RequestState_t  Ut_Gpdma_NvicSetHandlerStub ( nvic_PeriphIrqList_t irqId, const nvic_IsrCallback_t irqHandler, int callCnt );
@@ -36,8 +51,22 @@ static void                 Ut_Gpdma_Expect_ClockActivation( rcc_FunctionState_t
 
 /* ========================= SYMBOLIC CONSTANTS ============================= */
 
+#if defined(GPDMA1_Channel8)
+/** Count of channels of GPDMA1 / GPDMA2 - STM32H5E4 / H5E5 / H5F4 / H5F5 (RM0517 Rev 1, table 126) */
+#define UT_GPDMA_CHANNEL_CNT                ( 12u )
+
+/** First channel with 2D addressing - STM32H5E4 / H5E5 / H5F4 / H5F5: channels 10 - 11 */
+#define UT_GPDMA_CH_2D_FIRST                ( GPDMA_CHANNEL_10 )
+#else
+/** Count of channels of GPDMA1 / GPDMA2 - other STM32H5 lines (RM0481 Rev 5, table 140; RM0492 Rev 3, table 85) */
+#define UT_GPDMA_CHANNEL_CNT                ( 8u )
+
+/** First channel with 2D addressing - other STM32H5 lines: channels 6 - 7 */
+#define UT_GPDMA_CH_2D_FIRST                ( GPDMA_CHANNEL_6 )
+#endif /* GPDMA1_Channel8 */
+
 /** Channel used by register tests - supports 2D addressing */
-#define UT_GPDMA_CH_2D                      ( GPDMA_CHANNEL_6 )
+#define UT_GPDMA_CH_2D                      ( UT_GPDMA_CH_2D_FIRST )
 
 /** Channel used by initialization tests - linear addressing only */
 #define UT_GPDMA_CH_LINEAR                  ( GPDMA_CHANNEL_2 )
@@ -62,6 +91,10 @@ static void                 Ut_Gpdma_Expect_ClockActivation( rcc_FunctionState_t
 /** Channel register block of GPDMA1 */
 #define UT_GPDMA1_CH( channel )             ( (DMA_Channel_TypeDef *)( (uintptr_t)GPDMA1_Channel0 + \
                                               ( (uintptr_t)GPDMA1_Channel1 - (uintptr_t)GPDMA1_Channel0 ) * (uint32_t)( channel ) ) )
+
+/** Channel register block of GPDMA2 */
+#define UT_GPDMA2_CH( channel )             ( (DMA_Channel_TypeDef *)( (uintptr_t)GPDMA2_Channel0 + \
+                                              ( (uintptr_t)GPDMA2_Channel1 - (uintptr_t)GPDMA2_Channel0 ) * (uint32_t)( channel ) ) )
 
 /** Set - Get round trip of channel configuration function pair */
 #define UT_GPDMA_ROUNDTRIP( setFn, getFn, type, value )                                             \
@@ -95,12 +128,11 @@ uint32_t _flash_start;
 uint32_t _flash_end;
 uint32_t _ram_start;
 uint32_t _ram_end;
-uint32_t _ram4_start;
-uint32_t _ram4_end;
 
 /* ========================== LOCAL VARIABLES =============================== */
 
 static nvic_IsrCallback_t   utGpdma_ChannelIsr;
+static nvic_PeriphIrqList_t utGpdma_LastIrqId;
 static uint32_t             utGpdma_TcCnt;
 static uint32_t             utGpdma_HtCnt;
 static uint32_t             utGpdma_ErrCnt;
@@ -109,6 +141,26 @@ static gpdma_ErrorMaskId_t  utGpdma_LastError;
 /** Transfer configurations (configuration is copied into list nodes by Init) */
 static gpdma_TransferConfig_t utGpdma_XferConfig[ 1 ];
 
+/** Interrupt of every channel of GPDMA1 (CMSIS device header: GPDMA1_Channel0_IRQn ...) */
+static const nvic_PeriphIrqList_t utGpdma_Gpdma1ChannelIrq[ UT_GPDMA_CHANNEL_CNT ] =
+{
+    NVIC_PERIPH_IRQ_GPDMA1_CHANNEL0, NVIC_PERIPH_IRQ_GPDMA1_CHANNEL1, NVIC_PERIPH_IRQ_GPDMA1_CHANNEL2,  NVIC_PERIPH_IRQ_GPDMA1_CHANNEL3,
+    NVIC_PERIPH_IRQ_GPDMA1_CHANNEL4, NVIC_PERIPH_IRQ_GPDMA1_CHANNEL5, NVIC_PERIPH_IRQ_GPDMA1_CHANNEL6,  NVIC_PERIPH_IRQ_GPDMA1_CHANNEL7,
+#if defined(GPDMA1_Channel8)
+    NVIC_PERIPH_IRQ_GPDMA1_CHANNEL8, NVIC_PERIPH_IRQ_GPDMA1_CHANNEL9, NVIC_PERIPH_IRQ_GPDMA1_CHANNEL10, NVIC_PERIPH_IRQ_GPDMA1_CHANNEL11
+#endif /* GPDMA1_Channel8 */
+};
+
+/** Interrupt of every channel of GPDMA2 (CMSIS device header: GPDMA2_Channel0_IRQn ...) */
+static const nvic_PeriphIrqList_t utGpdma_Gpdma2ChannelIrq[ UT_GPDMA_CHANNEL_CNT ] =
+{
+    NVIC_PERIPH_IRQ_GPDMA2_CHANNEL0, NVIC_PERIPH_IRQ_GPDMA2_CHANNEL1, NVIC_PERIPH_IRQ_GPDMA2_CHANNEL2,  NVIC_PERIPH_IRQ_GPDMA2_CHANNEL3,
+    NVIC_PERIPH_IRQ_GPDMA2_CHANNEL4, NVIC_PERIPH_IRQ_GPDMA2_CHANNEL5, NVIC_PERIPH_IRQ_GPDMA2_CHANNEL6,  NVIC_PERIPH_IRQ_GPDMA2_CHANNEL7,
+#if defined(GPDMA1_Channel8)
+    NVIC_PERIPH_IRQ_GPDMA2_CHANNEL8, NVIC_PERIPH_IRQ_GPDMA2_CHANNEL9, NVIC_PERIPH_IRQ_GPDMA2_CHANNEL10, NVIC_PERIPH_IRQ_GPDMA2_CHANNEL11
+#endif /* GPDMA1_Channel8 */
+};
+
 /* ============================ TEST FIXTURE ================================ */
 
 void setUp( void )
@@ -116,6 +168,7 @@ void setUp( void )
     TEST_ASSERT_EQUAL( REGMEM_REQUEST_OK, RegMem_Reset() );
 
     utGpdma_ChannelIsr = NULL;
+    utGpdma_LastIrqId  = NVIC_PERIPH_IRQ_SIZE;
     utGpdma_TcCnt      = 0u;
     utGpdma_HtCnt      = 0u;
     utGpdma_ErrCnt     = 0u;
@@ -171,6 +224,122 @@ void Ut_Gpdma_Get_DefaultConfig_ReturnsDefaults( void )
     TEST_ASSERT_NULL( config.TransferCompleteIsr );
 
     TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Get_DefaultConfig( NULL ) );
+}
+
+/* ============================ DEVICE LISTS ================================ */
+
+/**
+ * \brief   Channel list equals the channel implementation of the device line.
+ *
+ * \details Compares the end marker of the channel list with the channel count of GPDMA1 /
+ *          GPDMA2 (RM0517 Rev 1, table 126: 12 channels on STM32H5E4 / H5E5 / H5F4 / H5F5;
+ *          RM0481 Rev 5, table 140 and RM0492 Rev 3, table 85: 8 channels on the other
+ *          lines), activates the last channel of both peripherals and uses the identifier
+ *          behind the list.
+ * \note    Bug AB#1809: the channels 8 - 11 of STM32H5E4 / H5E5 / H5F4 / H5F5 were not offered.
+ *
+ * \par Expected results
+ * - GPDMA_CHANNEL_CNT is 12 (STM32H5E4 / H5E5 / H5F4 / H5F5) or 8 (other lines).
+ * - The last channel of GPDMA1 and GPDMA2 is activated (CCR.EN set).
+ * - The identifier behind the list is refused on both peripherals.
+ */
+void Ut_Gpdma_ChannelList_ChannelsOfDeviceLine( void )
+{
+    const gpdma_ChannelId_t lastChannel = (gpdma_ChannelId_t)( UT_GPDMA_CHANNEL_CNT - 1u );
+
+    TEST_ASSERT_EQUAL_UINT32( UT_GPDMA_CHANNEL_CNT, (uint32_t)GPDMA_CHANNEL_CNT );
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_ChannelActive( GPDMA_PERIPH_1, lastChannel ) );
+    TEST_ASSERT_BITS_HIGH( DMA_CCR_EN, UT_GPDMA1_CH( lastChannel )->CCR );
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_ChannelActive( GPDMA_PERIPH_2, lastChannel ) );
+    TEST_ASSERT_BITS_HIGH( DMA_CCR_EN, UT_GPDMA2_CH( lastChannel )->CCR );
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Set_ChannelActive( GPDMA_PERIPH_1, GPDMA_CHANNEL_CNT ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Set_ChannelActive( GPDMA_PERIPH_2, GPDMA_CHANNEL_CNT ) );
+}
+
+
+/**
+ * \brief   2D settings are accepted only by the channels with 2D addressing.
+ *
+ * \details Sets block repeat count 3 and trigger mode GPDMA_TRIGGER_2D_BLOCK on every
+ *          channel of GPDMA1 and GPDMA2 and reads them back on the 2D channels
+ *          (STM32H5E4 / H5E5 / H5F4 / H5F5: channels 0 - 9 linear, 10 - 11 linear or 2D,
+ *          RM0517 Rev 1, table 126; other lines: channels 0 - 5 linear, 6 - 7 linear or
+ *          2D, RM0481 Rev 5, table 140 and RM0492 Rev 3, table 85).
+ * \note    Bug AB#1809: the channels 6 - 7 of STM32H5E4 / H5E5 / H5F4 / H5F5 (no 2D
+ *          registers) accepted the 2D settings.
+ *
+ * \par Expected results
+ * - Linear channels: GPDMA_REQUEST_ERROR for both settings, CBR1 and CTR2 of GPDMA1 not written.
+ * - 2D channels: GPDMA_REQUEST_OK, block repeat count 3 and GPDMA_TRIGGER_2D_BLOCK read back.
+ */
+void Ut_Gpdma_ChannelType_2DSettingsOnlyOn2DChannels( void )
+{
+    for( uint32_t periphIdx = 0u; GPDMA_PERIPH_CNT > periphIdx; periphIdx++ )
+    {
+        for( uint32_t channelIdx = 0u; UT_GPDMA_CHANNEL_CNT > channelIdx; channelIdx++ )
+        {
+            const gpdma_PeriphId_t  periphId    = (gpdma_PeriphId_t)periphIdx;
+            const gpdma_ChannelId_t channelId   = (gpdma_ChannelId_t)channelIdx;
+            gpdma_BlockRep_t        blockRepCnt = 0u;
+            gpdma_TriggerMode_t     triggerMode = GPDMA_TRIGGER_BLOCK;
+
+            if( UT_GPDMA_CH_2D_FIRST > channelIdx )
+            {
+                /* Channel with linear addressing only */
+                TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Set_BlockRepeatCount( periphId, channelId, 3u ) );
+                TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Set_TriggerMode( periphId, channelId, GPDMA_TRIGGER_2D_BLOCK ) );
+            }
+            else
+            {
+                /* Channel with 2D addressing */
+                TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_BlockRepeatCount( periphId, channelId, 3u ) );
+                TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Get_BlockRepeatCount( periphId, channelId, &blockRepCnt ) );
+                TEST_ASSERT_EQUAL_UINT32( 3u, blockRepCnt );
+
+                TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_TriggerMode( periphId, channelId, GPDMA_TRIGGER_2D_BLOCK ) );
+                TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Get_TriggerMode( periphId, channelId, &triggerMode ) );
+                TEST_ASSERT_EQUAL( GPDMA_TRIGGER_2D_BLOCK, triggerMode );
+            }
+        }
+    }
+
+    for( uint32_t channelIdx = 0u; UT_GPDMA_CH_2D_FIRST > channelIdx; channelIdx++ )
+    {
+        TEST_ASSERT_EQUAL_HEX32( 0u, UT_GPDMA1_CH( channelIdx )->CBR1 );
+        TEST_ASSERT_EQUAL_HEX32( 0u, UT_GPDMA1_CH( channelIdx )->CTR2 );
+    }
+}
+
+
+/**
+ * \brief   Interrupt of every channel of GPDMA1 and GPDMA2 is the interrupt of the channel.
+ *
+ * \details Calls Gpdma_Set_InterruptActive() for every channel of GPDMA1 and GPDMA2, the
+ *          strict NVIC mock expects the interrupt of the channel (CMSIS device header:
+ *          GPDMAx_Channel0_IRQn ... GPDMAx_Channel11_IRQn; channels 8 - 11 of STM32H5E4 /
+ *          H5E5 / H5F4 / H5F5 have the interrupts 136 - 143).
+ * \note    Bug AB#1809: the interrupts of the channels 8 - 11 of STM32H5E4 / H5E5 / H5F4 /
+ *          H5F5 were not used.
+ *
+ * \par Expected results
+ * - GPDMA_REQUEST_OK for every channel, NVIC called with the interrupt of the channel.
+ */
+void Ut_Gpdma_Set_InterruptActive_EveryChannel_UsesOwnNvicIrq( void )
+{
+    for( uint32_t channelIdx = 0u; UT_GPDMA_CHANNEL_CNT > channelIdx; channelIdx++ )
+    {
+        Nvic_Set_PeriphIrq_Active_ExpectAndReturn( utGpdma_Gpdma1ChannelIrq[ channelIdx ], NVIC_REQUEST_OK );
+        TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_InterruptActive( GPDMA_PERIPH_1, (gpdma_ChannelId_t)channelIdx ) );
+    }
+
+    for( uint32_t channelIdx = 0u; UT_GPDMA_CHANNEL_CNT > channelIdx; channelIdx++ )
+    {
+        Nvic_Set_PeriphIrq_Active_ExpectAndReturn( utGpdma_Gpdma2ChannelIrq[ channelIdx ], NVIC_REQUEST_OK );
+        TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_InterruptActive( GPDMA_PERIPH_2, (gpdma_ChannelId_t)channelIdx ) );
+    }
 }
 
 /* ============================ CHANNEL STATE =============================== */
@@ -302,7 +471,7 @@ void Ut_Gpdma_ChannelFunctions_InvalidArgs_ReturnError( void )
 /**
  * \brief   All channel configuration setters and getters are consistent.
  *
- * \details For every Set / Get pair of channel 6 (2D capable) writes a non-default
+ * \details For every Set / Get pair of channel UT_GPDMA_CH_2D (2D capable) writes a non-default
  *          value and reads it back: priority, execution mode, source / destination /
  *          configuration port, data sizes, data operations, trigger type / source /
  *          mode, request source, direction, addresses, address modes, burst
@@ -361,10 +530,35 @@ void Ut_Gpdma_Set_BlockRepeatCount_InvalidIds_ReturnsError( void )
 
 
 /**
+ * \brief   Gpdma_Get_FifoLevel() returns CSR.FIFOL of the channel.
+ *
+ * \details Presets CSR of channel UT_GPDMA_CH_LINEAR with FIFO level 5 and the TC flag,
+ *          reads the level; calls the getter with invalid identifiers and NULL.
+ *
+ * \par Expected results
+ * - FIFO level 5 (other CSR bits are not part of the level).
+ * - Invalid peripheral / channel, NULL pointer: GPDMA_REQUEST_ERROR.
+ */
+void Ut_Gpdma_Get_FifoLevel_ChannelFifo_LevelReturned( void )
+{
+    gpdma_FifoLevel_t fifoLevel = 0u;
+
+    UT_GPDMA1_CH( UT_GPDMA_CH_LINEAR )->CSR = ( 5u << DMA_CSR_FIFOL_Pos ) | DMA_CSR_TCF;
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Get_FifoLevel( GPDMA_PERIPH_1, UT_GPDMA_CH_LINEAR, &fifoLevel ) );
+    TEST_ASSERT_EQUAL_UINT16( 5u, fifoLevel );
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Get_FifoLevel( GPDMA_PERIPH_CNT, UT_GPDMA_CH_LINEAR, &fifoLevel ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Get_FifoLevel( GPDMA_PERIPH_1, GPDMA_CHANNEL_CNT, &fifoLevel ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Get_FifoLevel( GPDMA_PERIPH_1, UT_GPDMA_CH_LINEAR, GPDMA_NULL_PTR ) );
+}
+
+
+/**
  * \brief   Channel configuration setters write the right registers.
  *
  * \details Sets source address, block size, source increment and request source
- *          USART1 TX of channel 6.
+ *          USART1 TX of channel UT_GPDMA_CH_2D.
  *
  * \par Expected results
  * - CSAR = source address, CBR1.BNDT = 16, CTR1.SINC set, CTR2.REQSEL = USART1 TX.
@@ -388,9 +582,161 @@ void Ut_Gpdma_ChannelConfig_WritesRegisters( void )
 
 
 /**
+ * \brief   ADC3 request is selectable on MCUs with ADC3.
+ *
+ * \details Sets request source ADC3 of channel UT_GPDMA_CH_2D and reads it back.
+ *
+ * \par Expected results
+ * - GPDMA_REQUEST_OK, CTR2.REQSEL = LL_GPDMA1_REQUEST_ADC3 (142).
+ * - Gpdma_Get_RequestSource() returns GPDMA_REQ_ADC3.
+ * - Ignored on MCUs without ADC3 (test function exists always, the runner
+ *   collects test functions without preprocessor).
+ */
+void Ut_Gpdma_Set_RequestSource_Adc3_RequestSelected( void )
+{
+#if !defined(ADC3)
+    TEST_IGNORE_MESSAGE( "MCU without ADC3" );
+#else
+    gpdma_PeriphReqId_t requestSrc = GPDMA_REQ_ADC1;
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_RequestSource( GPDMA_PERIPH_1, UT_GPDMA_CH_2D, GPDMA_REQ_ADC3 ) );
+    TEST_ASSERT_EQUAL_HEX32( LL_GPDMA1_REQUEST_ADC3, UT_GPDMA1_CH( UT_GPDMA_CH_2D )->CTR2 & DMA_CTR2_REQSEL );
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Get_RequestSource( GPDMA_PERIPH_1, UT_GPDMA_CH_2D, &requestSrc ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQ_ADC3, requestSrc );
+#endif
+}
+
+
+/**
+ * \brief   Requests of JPEG, OCTOSPI2, MDF1 and ADF1 are selectable on MCUs with MDF1
+ *          (STM32H5E4 / H5E5 / H5F4 / H5F5).
+ *
+ * \note    Bug AB#1808: the requests 140, 141 and 143 - 150 of the LL header were not items
+ *          of gpdma_PeriphReqId_t.
+ *
+ * \details Sets every request of the list as request source of channel UT_GPDMA_CH_2D and reads it back.
+ *
+ * \par Expected results
+ * - GPDMA_REQUEST_OK, CTR2.REQSEL = LL request number of the item (up to 150, 8-bit field).
+ * - Gpdma_Get_RequestSource() returns the item.
+ * - Ignored on MCUs without MDF1 (test function exists always, the runner
+ *   collects test functions without preprocessor).
+ */
+void Ut_Gpdma_Set_RequestSource_RequestsOfMcusWithMdf1_RequestSelected( void )
+{
+#if !defined(MDF1)
+    TEST_IGNORE_MESSAGE( "MCU without MDF1" );
+#else
+    static const utGpdma_RequestItem_t requests[ ] =
+    {
+#if defined (JPEG)
+        { GPDMA_REQ_JPEG_RX,   LL_GPDMA1_REQUEST_JPEG_RX_REQ },
+        { GPDMA_REQ_JPEG_TX,   LL_GPDMA1_REQUEST_JPEG_TX_REQ },
+#endif /* JPEG */
+#if defined (OCTOSPI2)
+        { GPDMA_REQ_OCTOSPI2,  LL_GPDMA1_REQUEST_OCTOSPI2    },
+#endif /* OCTOSPI2 */
+        { GPDMA_REQ_MDF1_FLT0, LL_GPDMA1_REQUEST_MDF1_FLT0   },
+        { GPDMA_REQ_MDF1_FLT1, LL_GPDMA1_REQUEST_MDF1_FLT1   },
+        { GPDMA_REQ_MDF1_FLT2, LL_GPDMA1_REQUEST_MDF1_FLT2   },
+        { GPDMA_REQ_MDF1_FLT3, LL_GPDMA1_REQUEST_MDF1_FLT3   },
+        { GPDMA_REQ_MDF1_FLT4, LL_GPDMA1_REQUEST_MDF1_FLT4   },
+        { GPDMA_REQ_MDF1_FLT5, LL_GPDMA1_REQUEST_MDF1_FLT5   },
+#if defined (ADF1)
+        { GPDMA_REQ_ADF1_FLT0, LL_GPDMA1_REQUEST_ADF1_FLT0   },
+#endif /* ADF1 */
+    };
+
+    for( uint32_t idx = 0u; ( sizeof( requests ) / sizeof( requests[ 0u ] ) ) > idx; idx++ )
+    {
+        gpdma_PeriphReqId_t requestSrc = GPDMA_REQ_ADC1;
+
+        TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_RequestSource( GPDMA_PERIPH_1, UT_GPDMA_CH_2D, requests[ idx ].Item ) );
+        TEST_ASSERT_EQUAL_HEX32( requests[ idx ].LlRequest, UT_GPDMA1_CH( UT_GPDMA_CH_2D )->CTR2 & DMA_CTR2_REQSEL );
+
+        TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Get_RequestSource( GPDMA_PERIPH_1, UT_GPDMA_CH_2D, &requestSrc ) );
+        TEST_ASSERT_EQUAL( requests[ idx ].Item, requestSrc );
+    }
+#endif
+}
+
+
+/**
+ * \brief   Triggers of STM32H543 / H553 / H5E4 / H5E5 / H5F4 / H5F5 are selectable.
+ *
+ * \note    Bug AB#1808: EVENTOUT was an item of gpdma_TrgSrcId_t on STM32H503 / H523 / H533
+ *          only, COMP2_OUT and the triggers 47 - 72 of STM32H5E4 / H5E5 / H5F4 / H5F5 (DMA2D,
+ *          JPEG, GFXTIM, LCD, GPDMA channels 8 - 11, PLAY1_OUT15) were not items at all.
+ *          PLAY1_OUT15 (72) is not an item on STM32H543 / H553 - TRIGSEL of these devices has
+ *          6 bits (RM0481 Rev 5).
+ *
+ * \details Sets every trigger of the list as trigger source of channel UT_GPDMA_CH_2D and reads it back.
+ *
+ * \par Expected results
+ * - GPDMA_REQUEST_OK, CTR2.TRIGSEL = LL trigger number of the item (up to 72 on STM32H5E4 /
+ *   H5E5 / H5F4 / H5F5, 7-bit field).
+ * - Gpdma_Get_TriggerSource() returns the item.
+ * - Ignored on MCUs without COMP2_OUT trigger (test function exists always, the runner
+ *   collects test functions without preprocessor).
+ */
+void Ut_Gpdma_Set_TriggerSource_TriggersOfMcusWithComp2_TriggerSelected( void )
+{
+#if !defined(LL_GPDMA1_TRIGGER_COMP2_OUT)
+    TEST_IGNORE_MESSAGE( "MCU without COMP2_OUT trigger" );
+#else
+    static const utGpdma_TriggerItem_t triggers[ ] =
+    {
+        { GPDMA_TRG_EVENTOUT,        LL_GPDMA1_TRIGGER_EVENTOUT          },
+        { GPDMA_TRG_COMP2_OUT,       LL_GPDMA1_TRIGGER_COMP2_OUT         },
+#if defined (LL_GPDMA1_TRIGGER_DMA2D_TC_FLAG)
+        { GPDMA_TRG_DMA2D_TC,        LL_GPDMA1_TRIGGER_DMA2D_TC_FLAG     },
+        { GPDMA_TRG_DMA2D_CTC,       LL_GPDMA1_TRIGGER_DMA2D_CTC_FLAG    },
+        { GPDMA_TRG_DMA2D_TW,        LL_GPDMA1_TRIGGER_DMA2D_TW_FLAG     },
+        { GPDMA_TRG_DMA2D_GPFLAGS0,  LL_GPDMA1_TRIGGER_DMA2D_GPFLAGS0    },
+        { GPDMA_TRG_DMA2D_GPFLAGS1,  LL_GPDMA1_TRIGGER_DMA2D_GPFLAGS1    },
+        { GPDMA_TRG_DMA2D_GPFLAGS2,  LL_GPDMA1_TRIGGER_DMA2D_GPFLAGS2    },
+        { GPDMA_TRG_DMA2D_GPFLAGS3,  LL_GPDMA1_TRIGGER_DMA2D_GPFLAGS3    },
+        { GPDMA_TRG_JPEG_IFT,        LL_GPDMA1_TRIGGER_JPEG_IFT_FLAG     },
+        { GPDMA_TRG_JPEG_IFNF,       LL_GPDMA1_TRIGGER_JPEG_IFNF_FLAG    },
+        { GPDMA_TRG_JPEG_OFT,        LL_GPDMA1_TRIGGER_JPEG_OFT_FLAG     },
+        { GPDMA_TRG_JPEG_OFNE,       LL_GPDMA1_TRIGGER_JPEG_OFNE_FLAG    },
+        { GPDMA_TRG_JPEG_EOC,        LL_GPDMA1_TRIGGER_JPEG_EOC_FLAG     },
+        { GPDMA_TRG_GFXTIM_EVT1,     LL_GPDMA1_TRIGGER_GFXTIM_EVT1       },
+        { GPDMA_TRG_GFXTIM_EVT2,     LL_GPDMA1_TRIGGER_GFXTIM_EVT2       },
+        { GPDMA_TRG_GFXTIM_EVT3,     LL_GPDMA1_TRIGGER_GFXTIM_EVT3       },
+        { GPDMA_TRG_GFXTIM_EVT4,     LL_GPDMA1_TRIGGER_GFXTIM_EVT4       },
+        { GPDMA_TRG_LCD_CTRL_SCANLINE, LL_GPDMA1_TRIGGER_LCD_CTRL_SCANLINE },
+        { GPDMA_TRG_GPDMA1_CH8_TCF,  LL_GPDMA1_TRIGGER_GPDMA1_CH8_TCF    },
+        { GPDMA_TRG_GPDMA1_CH9_TCF,  LL_GPDMA1_TRIGGER_GPDMA1_CH9_TCF    },
+        { GPDMA_TRG_GPDMA1_CH10_TCF, LL_GPDMA1_TRIGGER_GPDMA1_CH10_TCF   },
+        { GPDMA_TRG_GPDMA1_CH11_TCF, LL_GPDMA1_TRIGGER_GPDMA1_CH11_TCF   },
+        { GPDMA_TRG_GPDMA2_CH8_TCF,  LL_GPDMA1_TRIGGER_GPDMA2_CH8_TCF    },
+        { GPDMA_TRG_GPDMA2_CH9_TCF,  LL_GPDMA1_TRIGGER_GPDMA2_CH9_TCF    },
+        { GPDMA_TRG_GPDMA2_CH10_TCF, LL_GPDMA1_TRIGGER_GPDMA2_CH10_TCF   },
+        { GPDMA_TRG_GPDMA2_CH11_TCF, LL_GPDMA1_TRIGGER_GPDMA2_CH11_TCF   },
+        { GPDMA_TRG_PLAY1_OUT15,     LL_GPDMA1_TRIGGER_PLAY1_OUT15       },
+#endif /* LL_GPDMA1_TRIGGER_DMA2D_TC_FLAG */
+    };
+
+    for( uint32_t idx = 0u; ( sizeof( triggers ) / sizeof( triggers[ 0u ] ) ) > idx; idx++ )
+    {
+        gpdma_TrgSrcId_t triggerSrc = GPDMA_TRG_EXTI_LINE0;
+
+        TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_TriggerSource( GPDMA_PERIPH_1, UT_GPDMA_CH_2D, triggers[ idx ].Item ) );
+        TEST_ASSERT_EQUAL_HEX32( triggers[ idx ].LlTrigger, ( UT_GPDMA1_CH( UT_GPDMA_CH_2D )->CTR2 & DMA_CTR2_TRIGSEL ) >> DMA_CTR2_TRIGSEL_Pos );
+
+        TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Get_TriggerSource( GPDMA_PERIPH_1, UT_GPDMA_CH_2D, &triggerSrc ) );
+        TEST_ASSERT_EQUAL( triggers[ idx ].Item, triggerSrc );
+    }
+#endif
+}
+
+
+/**
  * \brief   Channel configuration is rejected while transfer is in progress.
  *
- * \details Presets CCR.EN of channel 6 and sets priority.
+ * \details Presets CCR.EN of channel UT_GPDMA_CH_2D and sets priority.
  *
  * \par Expected results
  * - GPDMA_REQUEST_ERROR is returned, CCR keeps only EN.
@@ -1277,28 +1623,33 @@ void Ut_Gpdma_Set_Interrupt_ActiveInactive_CallsNvicOfChannel( void )
 /**
  * \brief   Interrupt handler of every GPDMA1 channel serves its own channel.
  *
- * \details For every channel of GPDMA1: registers are reset, the channel is initialized with
- *          a transfer complete callback, TCF of the channel is preset and the ISR captured
- *          from NVIC is called.
+ * \details For every channel of GPDMA1 (12 channels on STM32H5E4 / H5E5 / H5F4 / H5F5, 8 on
+ *          the other lines): registers are reset, the channel is initialized with a transfer
+ *          complete callback, TCF of the channel is preset and the ISR captured from NVIC is
+ *          called.
+ * \note    Bug AB#1809: the channels 8 - 11 of STM32H5E4 / H5E5 / H5F4 / H5F5 had no
+ *          interrupt and no ISR.
  *
  * \par Expected results
- * - ISR registered in NVIC for the channel.
+ * - ISR registered in NVIC for the interrupt of the channel (GPDMA1_Channel0_IRQn ...).
  * - Transfer complete callback called once, TCF of the channel cleared by CFCR.
  */
 void Ut_Gpdma_Isr_EveryChannel_CallsOwnCallback( void )
 {
-    for( uint32_t channelIdx = 0u; GPDMA_CHANNEL_CNT > channelIdx; channelIdx++ )
+    for( uint32_t channelIdx = 0u; UT_GPDMA_CHANNEL_CNT > channelIdx; channelIdx++ )
     {
         gpdma_ConfigStruct_t config;
 
         TEST_ASSERT_EQUAL( REGMEM_REQUEST_OK, RegMem_Reset() );
         utGpdma_ChannelIsr = NULL;
+        utGpdma_LastIrqId  = NVIC_PERIPH_IRQ_SIZE;
         utGpdma_TcCnt      = 0u;
 
         Ut_Gpdma_Get_Config( &config, (gpdma_ChannelId_t)channelIdx, UT_GPDMA_LIST_OFFSET_A );
         Ut_Gpdma_Expect_ClockActivation( RCC_FUNCTION_INACTIVE );
         TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Init( &config ) );
         TEST_ASSERT_NOT_NULL( utGpdma_ChannelIsr );
+        TEST_ASSERT_EQUAL_INT( (int)utGpdma_Gpdma1ChannelIrq[ channelIdx ], (int)utGpdma_LastIrqId );
 
         UT_GPDMA1_CH( channelIdx )->CSR = DMA_CSR_TCF;
 
@@ -1402,12 +1753,12 @@ void Ut_Gpdma_Deinit_InvalidArgs_ReturnsError( void )
 
 /* =========================== LOCAL FUNCTIONS ============================== */
 
-/** Stub of Nvic_Set_PeriphIrq_Handler - stores registered channel ISR */
+/** Stub of Nvic_Set_PeriphIrq_Handler - stores registered channel interrupt and ISR */
 static nvic_RequestState_t Ut_Gpdma_NvicSetHandlerStub( nvic_PeriphIrqList_t irqId, const nvic_IsrCallback_t irqHandler, int callCnt )
 {
-    (void)irqId;
     (void)callCnt;
 
+    utGpdma_LastIrqId  = irqId;
     utGpdma_ChannelIsr = irqHandler;
 
     return ( NVIC_REQUEST_OK );
