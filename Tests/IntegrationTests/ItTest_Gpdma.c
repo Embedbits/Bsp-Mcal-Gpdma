@@ -573,7 +573,10 @@ static void It_Gpdma_Wait_ChannelIdle( gpdma_ChannelId_t channelId )
 {
     gpdma_FunctionState_t state = GPDMA_FUNCTION_ACTIVE;
 
-    for( uint32_t loopIdx = 0u; ( IT_GPDMA_WAIT_LOOPS > loopIdx ) && ( GPDMA_FUNCTION_INACTIVE != state ); loopIdx++ )
+    for( uint32_t loopIdx = 0u;
+         ( IT_GPDMA_WAIT_LOOPS     >  loopIdx ) &&
+         ( GPDMA_FUNCTION_INACTIVE != state   );
+         loopIdx++ )
     {
         TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Get_ChannelState( IT_GPDMA_PERIPH, channelId, &state ) );
     }
@@ -590,7 +593,10 @@ static void It_Gpdma_Wait_ChannelIdle( gpdma_ChannelId_t channelId )
  */
 static void It_Gpdma_Wait_Callback( volatile const uint32_t * const callbackCnt, uint32_t expectedCnt )
 {
-    for( volatile uint32_t loopIdx = 0u; ( IT_GPDMA_WAIT_LOOPS > loopIdx ) && ( expectedCnt > *callbackCnt ); loopIdx++ )
+    for( volatile uint32_t loopIdx = 0u;
+         ( IT_GPDMA_WAIT_LOOPS > loopIdx      ) &&
+         ( expectedCnt         > *callbackCnt );
+         loopIdx++ )
     {
         /* Busy wait */
     }

@@ -162,6 +162,16 @@ typedef uint16_t gpdma_BurstLength_t;
 typedef uint16_t gpdma_BlockSize_t;
 
 
+/** \brief Type representing level of the channel FIFO.
+ *
+ * Count of data read from the source and not yet written to the destination, in units
+ * of the destination data size (\ref gpdma_DataSize_t). The block size
+ * (\ref gpdma_BlockSize_t) counts the data read from the source - data written to the
+ * destination = programmed block size - remaining block size - FIFO level.
+ */
+typedef uint16_t gpdma_FifoLevel_t;
+
+
 /** \brief Type representing count of repetitions in single transfer (only for 2D transfers).
  *
  * This type specifies count of repetitions of single transfer (specified by

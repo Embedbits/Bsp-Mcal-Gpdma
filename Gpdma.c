@@ -3534,6 +3534,47 @@ gpdma_RequestState_t Gpdma_Get_BlockSize( gpdma_PeriphId_t periphId,
 
 
 /**
+ * \brief Gets the level of the channel FIFO - data read from the source and not yet written
+ *        to the destination.
+ *
+ * \note The remaining block size (Gpdma_Get_BlockSize()) counts the data read from the source.
+ *       Data written to the destination = programmed block size - remaining block size - FIFO
+ *       level (eg. memory to peripheral transfer stopped by the peripheral).
+ *
+ * \param periphId   [in]: The DMA bus identifier.
+ * \param channelId  [in]: The DMA channel identifier.
+ * \param fifoLevel [out]: Pointer to FIFO level in units of the destination data size.
+ *
+ * \return Processing request state. If request executed successfully returns "OK",
+ *         otherwise returns error.
+ */
+gpdma_RequestState_t Gpdma_Get_FifoLevel( gpdma_PeriphId_t periphId,
+                                          gpdma_ChannelId_t channelId,
+                                          gpdma_FifoLevel_t * const fifoLevel )
+{
+    gpdma_RequestState_t status = GPDMA_REQUEST_ERROR;
+
+    if( ( GPDMA_PERIPH_CNT  > periphId  ) &&
+        ( GPDMA_CHANNEL_CNT > channelId ) &&
+        ( GPDMA_NULL_PTR   != fifoLevel )    )
+    {
+        uint32_t regVal = LL_DMA_GetFIFOLevel( gpdma_PeriphConf[ periphId ].DmaReg,
+                                               gpdma_PeriphConf[ periphId ].ChannelsConfig[ channelId ].ChannelReg );
+
+        *fifoLevel = (gpdma_FifoLevel_t)regVal;
+
+        status = GPDMA_REQUEST_OK;
+    }
+    else
+    {
+        status = GPDMA_REQUEST_ERROR;
+    }
+
+    return ( status );
+}
+
+
+/**
  * \brief Sets the repetition count of data blocks for the DMA transfer (only for 2D transfers).
  *
  * \note This can be used only if channel is NOT active.

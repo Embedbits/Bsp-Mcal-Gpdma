@@ -390,6 +390,31 @@ void Ut_Gpdma_Set_BlockRepeatCount_2DOnlyOnChannels12To15( void )
 
 
 /**
+ * \brief   Gpdma_Get_FifoLevel() returns CSR.FIFOL of the channel.
+ *
+ * \details Presets CSR of channel UT_GPDMA_CH_LINEAR with FIFO level 5 and the TC flag,
+ *          reads the level; calls the getter with invalid identifiers and NULL.
+ *
+ * \par Expected results
+ * - FIFO level 5 (other CSR bits are not part of the level).
+ * - Invalid peripheral / channel, NULL pointer: GPDMA_REQUEST_ERROR.
+ */
+void Ut_Gpdma_Get_FifoLevel_ChannelFifo_LevelReturned( void )
+{
+    gpdma_FifoLevel_t fifoLevel = 0u;
+
+    UT_GPDMA1_CH( UT_GPDMA_CH_LINEAR )->CSR = ( 5u << DMA_CSR_FIFOL_Pos ) | DMA_CSR_TCF;
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Get_FifoLevel( GPDMA_PERIPH_1, UT_GPDMA_CH_LINEAR, &fifoLevel ) );
+    TEST_ASSERT_EQUAL_UINT16( 5u, fifoLevel );
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Get_FifoLevel( GPDMA_PERIPH_CNT, UT_GPDMA_CH_LINEAR, &fifoLevel ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Get_FifoLevel( GPDMA_PERIPH_1, GPDMA_CHANNEL_CNT, &fifoLevel ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Get_FifoLevel( GPDMA_PERIPH_1, UT_GPDMA_CH_LINEAR, GPDMA_NULL_PTR ) );
+}
+
+
+/**
  * \brief   Channel configuration setters write the right registers.
  *
  * \details Sets source address, block size, source increment and request source
@@ -884,6 +909,55 @@ void Ut_Gpdma_XferList_InvalidChannelType_ReturnsError( void )
     {
         TEST_ASSERT_EQUAL_HEX32( 0u, node->Register[ regId ] );
     }
+}
+
+
+/**
+ * \brief   Block offsets of a 2D transfer list node round trip.
+ *
+ * \details Writes source block offset 100 B / repeated block offset 200 B and destination
+ *          block offset 300 B / repeated block offset 400 B to a 2D node in emulated SRAM
+ *          and reads them back. A linear node ignores the offsets (not available).
+ * \note    Bug AB#1274: the destination offsets (DMA_CTR3.DAO, DMA_CBR2.BRDAO at bit 16) were
+ *          returned without the shift back by the field position (0 after the 16 bit gpdma_ByteCnt_t).
+ *
+ * \par Expected results
+ * - 2D node: setters and getters return GPDMA_REQUEST_OK, read offsets equal written ones.
+ * - Linear node: GPDMA_REQUEST_OK, read offsets are 0.
+ * - NULL node, invalid channel type, NULL outputs: GPDMA_REQUEST_ERROR.
+ */
+void Ut_Gpdma_XferList_Offset2D_RoundTrip( void )
+{
+    volatile gpdma_XferList_t * const node = REGMEM_SRAM_PTR( volatile gpdma_XferList_t, UT_GPDMA_LIST_OFFSET_A );
+    gpdma_ByteCnt_t blockOffset    = 0xFFFFu;
+    gpdma_ByteCnt_t repBlockOffset = 0xFFFFu;
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_XferList_SrcOffset2D( node, GPDMA_CHANNEL_LINEAR_2D, 100u, 200u ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_XferList_DstOffset2D( node, GPDMA_CHANNEL_LINEAR_2D, 300u, 400u ) );
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Get_XferList_SrcOffset2D( node, GPDMA_CHANNEL_LINEAR_2D, &blockOffset, &repBlockOffset ) );
+    TEST_ASSERT_EQUAL_UINT32( 100u, blockOffset );
+    TEST_ASSERT_EQUAL_UINT32( 200u, repBlockOffset );
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Get_XferList_DstOffset2D( node, GPDMA_CHANNEL_LINEAR_2D, &blockOffset, &repBlockOffset ) );
+    TEST_ASSERT_EQUAL_UINT32( 300u, blockOffset );
+    TEST_ASSERT_EQUAL_UINT32( 400u, repBlockOffset );
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Get_XferList_SrcOffset2D( node, GPDMA_CHANNEL_LINEAR, &blockOffset, &repBlockOffset ) );
+    TEST_ASSERT_EQUAL_UINT32( 0u, blockOffset );
+    TEST_ASSERT_EQUAL_UINT32( 0u, repBlockOffset );
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Get_XferList_DstOffset2D( node, GPDMA_CHANNEL_LINEAR, &blockOffset, &repBlockOffset ) );
+    TEST_ASSERT_EQUAL_UINT32( 0u, blockOffset );
+    TEST_ASSERT_EQUAL_UINT32( 0u, repBlockOffset );
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_XferList_SrcOffset2D( node, GPDMA_CHANNEL_LINEAR, 1u, 1u ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Set_XferList_DstOffset2D( node, GPDMA_CHANNEL_LINEAR, 1u, 1u ) );
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Set_XferList_SrcOffset2D( NULL, GPDMA_CHANNEL_LINEAR_2D, 1u, 1u ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Set_XferList_DstOffset2D( node, GPDMA_CHANNEL_OPTION_CNT, 1u, 1u ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Get_XferList_SrcOffset2D( node, GPDMA_CHANNEL_LINEAR_2D, NULL, &repBlockOffset ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Get_XferList_DstOffset2D( node, GPDMA_CHANNEL_LINEAR_2D, &blockOffset, NULL ) );
 }
 
 /* ============================ INITIALIZATION ============================== */
