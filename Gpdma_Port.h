@@ -209,6 +209,7 @@ gpdma_RequestState_t    Gpdma_Get_DestinationBurstLength    ( gpdma_PeriphId_t p
 
 gpdma_RequestState_t    Gpdma_Set_BlockSize                 ( gpdma_PeriphId_t periphId, gpdma_ChannelId_t channelId, gpdma_BlockSize_t blockSize );
 gpdma_RequestState_t    Gpdma_Get_BlockSize                 ( gpdma_PeriphId_t periphId, gpdma_ChannelId_t channelId, gpdma_BlockSize_t * const blockSize );
+gpdma_RequestState_t    Gpdma_Get_FifoLevel                 ( gpdma_PeriphId_t periphId, gpdma_ChannelId_t channelId, gpdma_FifoLevel_t * const fifoLevel );
 
 gpdma_RequestState_t    Gpdma_Set_BlockRepeatCount          ( gpdma_PeriphId_t periphId, gpdma_ChannelId_t channelId, gpdma_BlockRep_t blockRepCnt );
 gpdma_RequestState_t    Gpdma_Get_BlockRepeatCount          ( gpdma_PeriphId_t periphId, gpdma_ChannelId_t channelId, gpdma_BlockRep_t * const blockRepCnt );

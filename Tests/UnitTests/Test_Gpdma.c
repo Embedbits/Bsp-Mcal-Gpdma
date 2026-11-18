@@ -368,6 +368,31 @@ void Ut_Gpdma_Set_BlockRepeatCount_InvalidIds_ReturnsError( void )
 
 
 /**
+ * \brief   Gpdma_Get_FifoLevel() returns CSR.FIFOL of the channel.
+ *
+ * \details Presets CSR of channel UT_GPDMA_CH_LINEAR with FIFO level 5 and the TC flag,
+ *          reads the level; calls the getter with invalid identifiers and NULL.
+ *
+ * \par Expected results
+ * - FIFO level 5 (other CSR bits are not part of the level).
+ * - Invalid peripheral / channel, NULL pointer: GPDMA_REQUEST_ERROR.
+ */
+void Ut_Gpdma_Get_FifoLevel_ChannelFifo_LevelReturned( void )
+{
+    gpdma_FifoLevel_t fifoLevel = 0u;
+
+    UT_GPDMA1_CH( UT_GPDMA_CH_LINEAR )->CSR = ( 5u << DMA_CSR_FIFOL_Pos ) | DMA_CSR_TCF;
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_OK, Gpdma_Get_FifoLevel( GPDMA_PERIPH_1, UT_GPDMA_CH_LINEAR, &fifoLevel ) );
+    TEST_ASSERT_EQUAL_UINT16( 5u, fifoLevel );
+
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Get_FifoLevel( GPDMA_PERIPH_CNT, UT_GPDMA_CH_LINEAR, &fifoLevel ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Get_FifoLevel( GPDMA_PERIPH_1, GPDMA_CHANNEL_CNT, &fifoLevel ) );
+    TEST_ASSERT_EQUAL( GPDMA_REQUEST_ERROR, Gpdma_Get_FifoLevel( GPDMA_PERIPH_1, UT_GPDMA_CH_LINEAR, GPDMA_NULL_PTR ) );
+}
+
+
+/**
  * \brief   Channel configuration setters write the right registers.
  *
  * \details Sets source address, block size, source increment and request source
